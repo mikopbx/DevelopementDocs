@@ -1,2 +1,86 @@
-# Prepare IDE tools
+---
+description: How to organise workspace for MikoPBX an extension develop.
+---
+
+# Prepare IDE and system tools
+
+## OSX
+
+### Environment
+
+We widely use the **composer** to manage dependents libraries, **NodeJS** runtime for Javascript code processing.
+
+{% tabs %}
+{% tab title="Bash" %}
+```bash
+#XCode Command Line Tools
+xcode-select --install
+
+#install Homebrew
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+#install Composer
+brew install composer
+
+#install Node package manager
+brew install node
+
+#install AirBnb linter
+npx install-peerdeps --dev eslint-config-airbnb-base
+
+#install Babel toolchain
+npm install --save-dev @babel/core @babel/cli
+
+#install php 7.4
+brew install php@7.4
+brew unlink php && brew link --overwrite --force php@7.4
+
+```
+{% endtab %}
+{% endtabs %}
+
+{% hint style="info" %}
+At this point, I strongly recommend closing **ALL your terminal tabs and windows**. This will mean opening a new terminal to continue with the next step. This is strongly recommended because some really strange path issues can arise with existing terminals \(trust me, I have seen it!\).
+{% endhint %}
+
+{% tabs %}
+{% tab title="Bash" %}
+```bash
+#install phalcon
+brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
+brew install phalcon@4.1.0 --build-from-source 
+
+#stop core apache
+sudo apachectl stop
+sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist 2>/dev/null
+
+#install brew newer version of httpd
+brew install httpd
+brew services start httpd
+#Check it on http://localhost:8080/
+
+```
+{% endtab %}
+{% endtabs %}
+
+### 
+
+### PHPStorm IDE
+
+We advise using PHPStorm IDE, because all MikoPBX code was written with this tool.
+
+You have to download it by the next [link](https://www.jetbrains.com/phpstorm/) and install it.
+
+Create new **PHP empty Project** 
+
+Setup the **composer** executable path according to this [manual](https://www.jetbrains.com/help/phpstorm/composer-page.html)
+
+* [ ] 
+
+
+## Windows
+
+
+
+
 
