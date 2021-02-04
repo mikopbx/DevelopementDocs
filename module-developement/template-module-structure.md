@@ -16,7 +16,7 @@ Go to your development root folder and execute the next script:
 {% tab title="Linux/Mac" %}
 ```bash
 cd ~/PhpstormProjects
-curl -s https://git.io/JtzEa | bash /dev/stdin ModuleCalbackFromWebsite
+curl -sL https://git.io/JtzEa | bash /dev/stdin ModuleCalbackFrom
 ```
 {% endtab %}
 {% endtabs %}
