@@ -8,7 +8,7 @@ description: Clone module template and prepare it for developing
 
 To create a new module for MikoPBX, you can use the [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate) repository as ready for use template.
 
-Every MikoPBX module must have a unique identifier, i.e. you are developpig a call back module with identifier **ModuleCalbackFromWebsite**
+Every MikoPBX module must have a unique identifier, i.e. you are developing a call back module with identifier – **ModuleCalbackFromWebsite**
 
 Go to your development root folder and execute the next script: 
 
@@ -21,7 +21,7 @@ curl -s https://git.io/JtzEa | bash /dev/stdin ModuleCalbackFromWebsite
 {% endtab %}
 {% endtabs %}
 
-It clones the **ModuleTemplate** repository and renames folders, files, namespaces and classnames according to the new module uniqueid **ModuleCalbackFromWebsite.**
+It clones the **ModuleTemplate** repository and renames folders, files, namespaces and class names according to the new module unique id – **ModuleCalbackFromWebsite.**
 
 Now you can create zip archive and install your new module on MikoPBX server.
 
@@ -42,7 +42,7 @@ composer install
 {% endtab %}
 {% endtabs %}
 
-Next you van create git repository for new module and commit all new code. 
+Next, you can create git repository for a new module and commit all new code. 
 
 {% tabs %}
 {% tab title="Linux/Mac" %}
