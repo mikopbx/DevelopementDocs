@@ -12,7 +12,7 @@
 
 ## Modules developement <a id="module-developement"></a>
 
-* [Prepare the module structure](module-developement/template-module-structure.md)
+* [How to start](module-developement/template-module-structure.md)
 * [Setup class](module-developement/setup-class.md)
 * [Module class](module-developement/module-class.md)
 

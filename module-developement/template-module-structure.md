@@ -1,50 +1,72 @@
 ---
-description: How to make your own module from MikoPBX module template
+description: Clone module template and prepare it for developing
 ---
 
-# Prepare the module structure
+# How to start
 
-On our public repository you can find [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate), we advice to use it create the future module structure.
+### Create a new module structure
 
-Every MikoPBX module must have _unique_ _identifier_, i.e. you are developping a call back module with identifier **ModuleCalbackFromWebsite**
+To create a new module for MikoPBX, you can use the [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate) repository as ready for use template.
 
-Go to your developement root folder and execute the next bash script: 
+Every MikoPBX module must have a unique identifier, i.e. you are developpig a call back module with identifier **ModuleCalbackFromWebsite**
+
+Go to your development root folder and execute the next script: 
 
 {% tabs %}
-{% tab title="Bash" %}
+{% tab title="Linux/Mac" %}
 ```bash
 cd ~/PhpstormProjects
-curl -s https://raw.githubusercontent.com/mikopbx/ExtensionsDevTools/master/create_module.sh | bash /dev/stdin ModuleCalbackFromWebsite
+curl -s https://git.io/JtzEa | bash /dev/stdin ModuleCalbackFromWebsite
 ```
 {% endtab %}
 {% endtabs %}
 
 It clones the **ModuleTemplate** repository and renames folders, files, namespaces and classnames according to the new module uniqueid **ModuleCalbackFromWebsite.**
 
-Next you should load **mikopbx/core** package and dependent libraries
+Now you can create zip archive and install your new module on MikoPBX server.
 
+### Next steps
+
+{% hint style="info" %}
+Read article [Prepare IDE and system tools](../faq/prepare-ide-tools.md) before following the next instructions.
+{% endhint %}
+
+You should load the **mikopbx/core** package and dependent libraries it helps to resolve references between MikoPBX class names.  
+
+{% tabs %}
+{% tab title="Linux/Mac" %}
 ```text
 cd ~/PhpstormProjects/ModuleCalbackFromWebsite
 composer install
 ```
+{% endtab %}
+{% endtabs %}
 
 Next you van create git repository for new module and commit all new code. 
 
+{% tabs %}
+{% tab title="Linux/Mac" %}
 ```text
 git init
 echo "vendor/" > .gitignore
 git add .
 git commit -m 'initial commit'
 ```
+{% endtab %}
+{% endtabs %}
 
-If you have remore git repository you can push your module into it.
+If you have remote git repository you can push your module into it.
 
+{% tabs %}
+{% tab title="Linux/Mac" %}
 ```text
 git remote add origin <url>
 git push -u origin master
 ```
+{% endtab %}
+{% endtabs %}
 
-Now you can create zip arhive and install your new module on MikoPBX server.
+
 
 
 
