@@ -25,6 +25,8 @@ It clones the **ModuleTemplate** repository and renames folders, files, namespac
 
 Now you can create zip archive and install your new module on MikoPBX server.
 
+![](../.gitbook/assets/screenflow.gif)
+
 ### Next steps
 
 {% hint style="info" %}
