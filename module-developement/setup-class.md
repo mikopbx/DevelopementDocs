@@ -33,85 +33,55 @@ After initializing the **PbxExtensionSetup** class you will have a lot of useful
 
 ```php
 /**
- * Trial product version identify number from module.json
- *
- * @var int
- */
-public $lic_product_id;
-
-/**
- * License feature identify number from module.json
- *
- * @var int
- */
-public $lic_feature_id;
-
-/**
- * Module unique identify  from module.json
- *
- * @var string
- */
+* Module unique identify from the module.json
+* @var string
+*/
 protected string $moduleUniqueID;
 
 /**
- * Module version from module.json
- *
+ * Module version from the module.json
  * @var string
  */
 protected $version;
 
 /**
- * Minimal require version PBX
- *
+ * Minimal required version PBX from the module.json
  * @var string
  */
 protected $min_pbx_version;
 
 /**
- * Module developer name
- *
+ * Module developer name  from the module.json
  * @var string
  */
 protected $developer;
 
 /**
  * Module developer's email from module.json
- *
  * @var string
  */
 protected $support_email;
 
 /**
- * PBX general database
- *
+ * PBX core general database
  * @var \Phalcon\Db\Adapter\Pdo\Sqlite
  */
 protected $db;
 
 /**
  * Folder with module files
- *
  * @var string
  */
 protected string $moduleDir;
 
 /**
  * Phalcon config service
- *
  * @var \Phalcon\Config
  */
 protected $config;
 
 /**
- * License worker
- *
- * @var \MikoPBX\Service\License
- */
-protected $license;
-
-/**
  * Error and verbose messages
- *
  * @var array
  */
 protected array $messages;
@@ -315,7 +285,8 @@ $setup = new $moduleClass($moduleUniqueID);
 $setup->uninstallModule($keepSettings);
 ```
 
-As you can see the main uninstall function is **unInstallModule**. It has already written on **PbxExtensionSetupBase.** The function called from PBXCoreRest interface after a user pushes a delete button or within a module upgrade process. It calls some private functions and sets error messages on the **message** variable. If something goes wrong – this method will return **false** and the user will be announced with information from the **message** variable**.**
+As you can see the main uninstall function has name **unInstallModule**. It has already written in **PbxExtensionSetupBase** class**.**   
+After user pushes delete or upgrade button the PBXCoreRest interface calls the **unInstallModule** function. It calls some private functions and sets error messages on the **message** variable. If something goes wrong – this method will return **false** and the user will be announced with information from the **message** variable**.**
 
 ```php
 public function uninstallModule(bool $keepSettings = false): bool
@@ -335,7 +306,8 @@ public function uninstallModule(bool $keepSettings = false): bool
 
 ### unInstallDB
 
-You can override this function to make some manipulations with data. For example, remove links to the module from system tables. By default, this method unregisters the module from the **PbxExtensionModules** table.
+You can override this function to make some manipulations with data. For example, remove links to the module from system tables.   
+By default, this method unregisters the module from the **PbxExtensionModules** table by the unregisterModule function.
 
 ```php
 public function unInstallDB(bool $keepSettings = false): bool
@@ -346,7 +318,7 @@ public function unInstallDB(bool $keepSettings = false): bool
 
 ### unInstallFiles
 
-The method makes a copy of a module database if the **keepSettings** set to true**.** Then it deletes all installed files, folders, symlinks.  
+The method makes a copy of a module database if the **keepSettings** was ****set to true**.** Then it deletes all installed files, folders, symlinks.  
 If your module has some executable binaries you should kill all processes before deleting them. Also, if your module produced any temporary or log files, you should delete them as well.
 
 ```php
