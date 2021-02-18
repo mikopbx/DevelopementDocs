@@ -1,2 +1,2 @@
-# Licensing
+# Licensing \(empty\)
 

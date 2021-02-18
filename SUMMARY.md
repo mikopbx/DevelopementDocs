@@ -6,9 +6,9 @@
 
 ---
 
-* [Admin interface](admin-interface.md)
-* [Core](core.md)
-* [REST API](rest-api.md)
+* [Admin interface\(empty\)](admin-interface.md)
+* [Core\(empty\)](core.md)
+* [REST API \(empty\)](rest-api.md)
 
 ## Modules developement <a id="module-developement"></a>
 
@@ -19,9 +19,9 @@
 ## FAQ
 
 * [Prepare IDE and system tools](faq/prepare-ide-tools.md)
-* [Debuging](faq/debuging.md)
+* [Debuging \(empty\)](faq/debuging.md)
 
 ## Marketplace
 
-* [Licensing](marketplace/licensing.md)
+* [Licensing \(empty\)](marketplace/licensing.md)
 
