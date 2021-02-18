@@ -13,8 +13,8 @@
 ## Modules developement <a id="module-developement"></a>
 
 * [How to start](module-developement/template-module-structure.md)
-* [Setup class](module-developement/setup-class.md)
-* [Module class](module-developement/module-class.md)
+* [Module installer class](module-developement/module-installer.md)
+* [Module main class](module-developement/module-class.md)
 
 ## FAQ
 

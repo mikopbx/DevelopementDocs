@@ -2,7 +2,7 @@
 description: 'This class helps to install, setup and delete an extension module'
 ---
 
-# Setup class
+# Module installer class
 
 On the template repository, you can find an example in the file ModuleTemplate/Setup/**PbxExtensionSetup.php**  
 You can use it for your project with some modifications.
