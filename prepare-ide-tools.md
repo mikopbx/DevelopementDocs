@@ -53,8 +53,6 @@ brew install phalcon@4.1.0 --build-from-source
 {% endtab %}
 {% endtabs %}
 
-### 
-
 ### PHPStorm IDE
 
 We advise using PHPStorm IDE because all MikoPBX code was written with this tool.
