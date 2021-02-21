@@ -219,6 +219,8 @@ class ModuleTemplate extends ModulesModelsBase
 }
 ```
 
+More information about models file
+
 After calling the **createSettingsTableByModelsAnnotations** you can manipulate module settings by the model class.
 
 ```php

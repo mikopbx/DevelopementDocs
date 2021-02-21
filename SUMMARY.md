@@ -6,8 +6,10 @@
 ## Modules developement <a id="module-developement"></a>
 
 * [How to start](module-developement/template-module-structure.md)
+* [Data model](module-developement/data-model.md)
 * [Module installer class](module-developement/module-installer.md)
 * [Module main class](module-developement/module-class.md)
+* [Translations\(empty\)](module-developement/translations.md)
 * [Debuging \(empty\)](module-developement/debuging.md)
 
 ## Internal structure
