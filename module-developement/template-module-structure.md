@@ -30,7 +30,7 @@ Now you can create zip archive and install your new module on MikoPBX server.
 ### Next steps
 
 {% hint style="info" %}
-Read article [Prepare IDE and system tools](../faq/prepare-ide-tools.md) before following the next instructions.
+Read article [Prepare IDE and system tools](../prepare-ide-tools.md) before following the next instructions.
 {% endhint %}
 
 You should load the **mikopbx/core** package and dependent libraries it helps to resolve references between MikoPBX class names.  
