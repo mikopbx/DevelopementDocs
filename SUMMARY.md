@@ -9,6 +9,7 @@
 * [Data model](module-developement/data-model.md)
 * [Module installer class](module-developement/module-installer.md)
 * [Module main class](module-developement/module-class.md)
+* [Module interface\(empty\)](module-developement/module-interface-empty.md)
 * [Translations\(empty\)](module-developement/translations.md)
 * [Debuging \(empty\)](module-developement/debuging.md)
 

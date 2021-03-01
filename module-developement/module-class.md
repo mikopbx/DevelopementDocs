@@ -29,10 +29,11 @@ After applying [the instructions](template-module-structure.md) your config clas
 
 #### generateConfig
 
+Generates core modules config files with cli messages before and after generation.
+
+Example:
+
 ```php
-/**
- * Generates core modules config files with cli messages before and after generation
- */
 public function generateConfig(): void;
 ```
 
@@ -40,172 +41,121 @@ public function generateConfig(): void;
 
 #### extensionGlobals
 
-The example:
+Prepares additional parameters for \[globals\] section in extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for [globals] section 
- * in the extensions.conf file
- *
- * @return string
- */
 public function extensionGlobals(): string;
 ```
 
 #### extensionGenContexts
 
-The example:
+Prepares additional contexts sections in extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional contexts sections in the extensions.conf file
- *
- * @return string
- */
 public function extensionGenContexts(): string;
 ```
 
-
-
 #### getIncludeInternal
 
-The example:
+Prepares additional includes for \[internal\] context section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional includes for [internal] context section in the extensions.conf file
- *
- * @return string
- */
 public function getIncludeInternal(): string;
 ```
 
 #### extensionGenInternal
 
-The example:
+Prepares additional rules for \[internal\] context section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional rules for [internal] context section in the extensions.conf file
- *
- * @return string
- */
 public function extensionGenInternal(): string;
 ```
 
 #### getIncludeInternalTransfer
 
-The example:
+Prepares additional includes for \[internal-transfer\] context section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional includes for [internal-transfer] context section in the extensions.conf file
- *
- * @return string
- */
 public function getIncludeInternalTransfer(): string;
 ```
 
 #### extensionGenInternalTransfer
 
-The example:
+Prepares additional rules for \[internal-transfer\] context section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional rules for [internal-transfer] context section in the extensions.conf file
- *
- * @return string
- */
 public function extensionGenInternalTransfer(): string;
 ```
 
 #### extensionGenHints
 
-The example:
+Prepares additional hints for \[internal-hints\] context section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional hints for [internal-hints] context section in the extensions.conf file
- *
- * @return string
- */
 public function extensionGenHints(): string;
 ```
 
 #### generateIncomingRoutBeforeDial
 
-The example:
+Prepares additional parameters for each incoming context for each incoming route before dial in extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for each incoming context for each incoming route before dial in the
- * extensions.conf file
- *
- * @param string $rout_number
- *
- * @return string
- */
 public function generateIncomingRoutBeforeDial(string $rout_number): string;
 ```
 
 #### generateIncomingRoutAfterDialContext
 
-The example:
+Prepares additional parameters for each incoming context \* and incoming route after dial command in an extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for each incoming context
- * and incoming route after dial command in an extensions.conf file
- *
- * @param string $uniqId
- *
- * @return string
- */
 public function generateIncomingRoutAfterDialContext(string $uniqId): string;
 ```
 
 #### generatePublicContext
 
-The example:
+Prepares additional parameters for \[public-direct-dial\] section in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for [public-direct-dial] section in the extensions.conf file
- *
- * @return string
- */
 public function generatePublicContext(): string;
 ```
 
 #### generateOutRoutContext
 
-The example:
+Prepares additional parameters for each outgoing route context \* before dial call in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for each outgoing route context
- * before dial call in the extensions.conf file
- *
- * @param array $rout
- *
- * @return string
- */
 public function generateOutRoutContext(array $rout): string;
 ```
 
 #### generateOutRoutAfterDialContext
 
-The example:
+Prepares additional parameters for each outgoing route context  after dial call in the extensions.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for each outgoing route context
- * after dial call in the extensions.conf file
- *
- * @param array $rout
- *
- * @return string
- */
 public function generateOutRoutAfterDialContext(array $rout): string;
 ```
 
@@ -213,14 +163,11 @@ public function generateOutRoutAfterDialContext(array $rout): string;
 
 #### generateManagerConf
 
-The example:
+Prepares additional AMI users data in the manager.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional AMI users data in the manager.conf file
- *
- * @return string
- */
 public function generateManagerConf(): string;
 ```
 
@@ -230,81 +177,53 @@ public function generateManagerConf(): string;
 
 #### generatePeersPj
 
-The example:
+Prepares additional peers data in the pjsip.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional peers data in the pjsip.conf file
- *
- * @return string
- */
 public function generatePeersPj(): string;
 ```
 
 #### generatePeerPjAdditionalOptions
 
-The example:
+Prepares additional pjsip options on endpoint section in the pjsip.conf file for peer
+
+Example:
 
 ```php
-/**
- * Prepares additional pjsip options on endpoint section in the pjsip.conf file for peer
- *
- * @param array $peer information about peer
- *
- * @return string
- */
 public function generatePeerPjAdditionalOptions(array $peer): string;
-
 ```
 
 #### overrideProviderPJSIPOptions
 
-The example:
+Override pjsip options for provider in the pjsip.conf file
+
+Example:
 
 ```php
-/**
- * Override pjsip options for provider in the pjsip.conf file
- *
- * @param string $uniqid  the provider unique identifier
- * @param array  $options list of pjsip options
- *
- * @return array
- */
 public function overrideProviderPJSIPOptions(string $uniqid, array $options): array;
-
-
 ```
 
 #### overridePJSIPOptions
 
-The example:
+Override pjsip options for peer in the pjsip.conf file
+
+Example:
 
 ```php
-/**
- * Override pjsip options for peer in the pjsip.conf file
- *
- * @param string $extension the endpoint extension
- * @param array  $options   list of pjsip options
- *
- * @return array
- */
 public function overridePJSIPOptions(string $extension, array $options): array;
 ```
-
-
 
 ### features.conf
 
 #### getFeatureMap
 
-The example:
+Prepares additional parameters for \[featuremap\] section in the features.conf file
+
+Example:
 
 ```php
-/**
- * Prepares additional parameters for [featuremap] section in the features.conf file
- *
- * @return string returns additional Star codes
- */
 public function getFeatureMap(): string;
 ```
 
@@ -336,31 +255,43 @@ public function getDependenceModels(): array;
 
 #### getPBXCoreRESTAdditionalRoutes
 
+Returns array of additional routes for PBXCoreREST interface from module
+
+ \[ControllerClass, ActionMethod, RequestTemplate, HttpMethod, RootUrl, NoAuth \]
+
+Example:
+
 ```php
-/**
- * Returns array of additional routes for PBXCoreREST interface from module
- * [ControllerClass, ActionMethod, RequestTemplate, HttpMethod, RootUrl, NoAuth ]
- *
- * @return array
- * @example
- *  [[GetController::class, 'callAction', '/pbxcore/api/backup/{actionName}', 'get', '/', false],
- *  [PostController::class, 'callAction', '/pbxcore/api/backup/{actionName}', 'post', '/', false]]
- */
-public function getPBXCoreRESTAdditionalRoutes(): array;
-
-
+ public function getPBXCoreRESTAdditionalRoutes(): array
+    {
+        return [
+            [
+                GetController::class,
+                'callAction',
+                '/pbxcore/api/backup/{actionName}',
+                'get',
+                '/',
+                false,
+            ],
+            [
+                PostController::class, 
+                'callAction', 
+                '/pbxcore/api/backup/{actionName}', 
+                'post', 
+                '/', 
+                false
+            ],
+        ];
+    }
 ```
 
 #### moduleRestAPICallback
 
+Process PBXCoreREST requests under root rights
+
+Example:
+
 ```php
-/**
- * Process PBXCoreREST requests under root rights
- *
- * @param array $request GET/POST parameters
- *
- * @return \MikoPBX\PBXCoreREST\Lib\PBXApiResult
- */
 public function moduleRestAPICallback(array $request): PBXApiResult;
 ```
 
@@ -370,77 +301,71 @@ public function moduleRestAPICallback(array $request): PBXApiResult;
 
 #### onAfterPbxStarted
 
+The callback function will execute after PBX started
+
+Example:
+
 ```php
-/**
- * The callback function will execute after PBX started.
- */
 public function onAfterPbxStarted(): void;
 ```
 
 #### onBeforeModuleEnable
 
+Process before enable action in web interface
+
+Example:
+
 ```php
-/**
- * Process before enable action in web interface
- *
- * @return bool
- */
 public function onBeforeModuleEnable(): bool;
 ```
 
 #### onAfterModuleEnable
 
+Process after enable action in web interface
+
+Example:
+
 ```php
-/**
- * Process after enable action in web interface
- *
- * @return void
- */
 public function onAfterModuleEnable(): void;
 ```
 
 #### onBeforeModuleDisable
 
+Process before disable action in web interface
+
+Example:
+
 ```php
-/**
- * Process before disable action in web interface
- *
- * @return bool
- */
 public function onBeforeModuleDisable(): bool;
 ```
 
 #### onAfterModuleDisable
 
-```php
+Process after disable action in web interface
 
-/**
- * Process after disable action in web interface
- *
- * @return void
- */
+Example:
+
+```php
 public function onAfterModuleDisable(): void;
 ```
 
 #### modelsEventChangeData
 
+This method calls in the WorkerModelsEvents after receive each models change
+
+Example:
+
 ```php
-/**
- * This method calls in the WorkerModelsEvents after receive each models change
- *
- * @param $data
- */
 public function modelsEventChangeData($data): void;
 ```
 
 #### modelsEventNeedReload
 
+This method calls in the WorkerModelsEvents after finished process models changing
+
+Example:
+
 ```php
-/**
- * This method calls in the WorkerModelsEvents after finished process models changing
- *
- * @param array $modified_tables list of modified models
- */
 public function modelsEventNeedReload(array $modified_tables): void;
 ```
 
@@ -448,12 +373,11 @@ public function modelsEventNeedReload(array $modified_tables): void;
 
 #### getModuleWorkers
 
+Returns array of workers classes for WorkerSafeScripts
+
+Example:
+
 ```php
-/**
- * Returns array of workers classes for WorkerSafeScripts
- *
- * @return array
- */
 public function getModuleWorkers(): array;
 ```
 
@@ -461,12 +385,11 @@ public function getModuleWorkers(): array;
 
 #### createCronTasks
 
+Add crond tasks
+
+Example:
+
 ```php
-/**
- * Adds crond rules
- *
- * @param $tasks
- */
 public function createCronTasks(&$tasks): void;
 ```
 
@@ -474,14 +397,11 @@ public function createCronTasks(&$tasks): void;
 
 #### getDefaultFirewallRules
 
+Returns array of additional firewall rules for module
+
+Example:
+
 ```php
-
-
-/**
- * Returns array of additional firewall rules for module
- *
- * @return array
- */
 public function getDefaultFirewallRules(): array;
 ```
 
@@ -489,13 +409,11 @@ public function getDefaultFirewallRules(): array;
 
 #### generateFail2BanJails
 
-```php
+Generates additional fail2ban jail conf rules
 
-/**
- * Generates additional fail2ban jail conf rules
- *
- * @return string
- */
+Example:
+
+```php
 public function generateFail2BanJails(): string;
 ```
 
@@ -503,11 +421,11 @@ public function generateFail2BanJails(): string;
 
 #### createNginxLocations
 
+Create additional Nginx locations from modules
+
+Example:
+
 ```php
-/**
- * Create additional Nginx locations from modules.
- *
- */
 public function createNginxLocations(): string;
 ```
 
