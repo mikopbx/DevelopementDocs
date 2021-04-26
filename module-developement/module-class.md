@@ -56,7 +56,21 @@ Prepares additional contexts sections in extensions.conf file
 Example:
 
 ```php
-public function extensionGenContexts(): string;
+/**
+* Adds the context "miko_new_context" with the extension "10000107" 
+* 
+* @return string
+*/
+public function extensionGenContexts(): string
+{
+   $conf = "[miko_new_context]\n";
+   $conf .= 'exten => 10000107,1,Answer()' . "\n\t";
+   $conf .= '  same => n,Set(CHANNEL(hangup_handler_wipe)=hangup_handler_meetme,s,1)' . "\n\t";
+   $conf .= '  same => n,AGI(cdr_connector.php,meetme_dial)' . "\n\t";
+   $conf .= '  same => n,Meetme(${mikoidconf},${mikoparamconf})' . "\n\t";
+   $conf .= '  same => n,Hangup()' . "\n\n";
+   return $conf;
+}
 ```
 
 #### getIncludeInternal
@@ -66,7 +80,20 @@ Prepares additional includes for \[internal\] context section in the extensions.
 Example:
 
 ```php
-public function getIncludeInternal(): string;
+/**
+* Prepares additional includes for [internal] context section in the extensions.conf file
+*
+* @return string
+*/
+public function getIncludeInternal(): string
+{
+    $conf     = '';
+    $settings = ModuleSmartIVR::findFirst();
+    if ($settings !== null) {
+        $conf = 'include => module_smartivr ' . PHP_EOL;
+    }
+    return $conf;
+}
 ```
 
 #### extensionGenInternal
@@ -116,7 +143,20 @@ Prepares additional parameters for each incoming context for each incoming route
 Example:
 
 ```php
-public function generateIncomingRoutBeforeDial(string $rout_number): string;
+/**
+* Sends AMI UserEvent with name Interception and the next parameters:
+* CALLERID(num), CHANNEL, FROM_DID on every incomming call.
+*
+* @param $rout_number
+*
+* @return string
+*/
+public function generateIncomingRoutBeforeDial(string $rout_number): string
+{
+    $conf = "\t";
+    $conf = 'same => n,UserEvent(Interception,CALLERID: ${CALLERID(num)},chan: ${CHANNEL},FROM_DID: ${FROM_DID})';    
+    return $conf;
+}
 ```
 
 #### generateIncomingRoutAfterDialContext
@@ -141,22 +181,49 @@ public function generatePublicContext(): string;
 
 #### generateOutRoutContext
 
-Prepares additional parameters for each outgoing route context \* before dial call in the extensions.conf file
+Prepares additional parameters for each outgoing route context before dial call in the extensions.conf file
 
 Example:
 
 ```php
-public function generateOutRoutContext(array $rout): string;
+/**
+* Prepares additional parameters for each outgoing route context 
+* before dial call in the extensions.conf file
+*
+* @param $rout
+*
+* @return string
+*/
+public function generateOutRoutContext($rout): string
+{
+   $conf = "\t".'same => n,ExecIf($["x${FROM_PEER}" == "x" && "${CHANNEL(channeltype)}" == "PJSIP" ]?Gosub(set_from_peer,s,1))' . " \n\t";
+   $conf .= 'same => n,Set(GR_VARS=${DB(UsersGroups/${FROM_PEER})})' . " \n\t";
+   $conf .= 'same => n,ExecIf($["${GR_VARS}x" != "x"]?Exec(Set(${GR_VARS})))' . " \n\t";
+   $conf .= 'same => n,ExecIf($["${GR_PERM_ENABLE}" == "1" && "${GR_ID_' . $rout['id'] . '}" != "1"]?return)' . " \n\t";
+   $conf .= 'same => n,ExecIf($["${GR_PERM_ENABLE}" == "1" && "${GR_CID_' . $rout['id'] . '}x" != "x"]?MSet(GR_OLD_CALLERID=${CALLERID(num)},OUTGOING_CID=${GR_CID_' . $rout['id'] . '}))';
+
+   return $conf;
+}
 ```
 
 #### generateOutRoutAfterDialContext
 
-Prepares additional parameters for each outgoing route context  after dial call in the extensions.conf file
+Prepares additional parameters for each outgoing route context after dial call in the extensions.conf file
 
 Example:
 
 ```php
-public function generateOutRoutAfterDialContext(array $rout): string;
+/**
+* Prepares additional parameters for each outgoing route context after dial action
+*
+* @param array $rout
+*
+* @return string
+*/
+public function generateOutRoutAfterDialContext(array $rout): string
+{
+  return "\t".'same => n,ExecIf($["${GR_PERM_ENABLE}" == "1" && "${GR_OLD_CALLERID}x" != "x"]?MSet(CALLERID(num)=${GR_OLD_CALLERID},GR_OLD_CALLERID=${UNDEFINED}))';
+}
 ```
 
 ### managers.conf
@@ -202,7 +269,18 @@ Override pjsip options for provider in the pjsip.conf file
 Example:
 
 ```php
-public function overrideProviderPJSIPOptions(string $uniqid, array $options): array;
+/**
+* Override pjsip options for provider in the pjsip.conf file
+*
+* @param string $uniqid  the provider unique identifier
+* @param array  $options list of pjsip options
+*
+* @return array
+*/
+public function overrideProviderPJSIPOptions(string $uniqid, array $options): array
+{
+
+}
 ```
 
 #### overridePJSIPOptions
@@ -212,7 +290,22 @@ Override pjsip options for peer in the pjsip.conf file
 Example:
 
 ```php
-public function overridePJSIPOptions(string $extension, array $options): array;
+/**
+* Override pjsip options for peer in the pjsip.conf file
+* @param string $id
+* @param array $options
+* @return array
+*/
+public function overridePJSIPOptions(string $id, array $options):array
+{
+    $groupID = $this->listUsers[$id]??'';
+    $type    = $options['type']??'';
+    if(!empty($groupID) && $type === 'endpoint'){
+         $options['call_group']   = $groupID;
+         $options['pickup_group'] = $groupID;
+    }
+    return $options;
+}
 ```
 
 ### features.conf
@@ -292,7 +385,29 @@ Process PBXCoreREST requests under root rights
 Example:
 
 ```php
-public function moduleRestAPICallback(array $request): PBXApiResult;
+/**
+*  Process CoreAPI requests under root rights
+*
+* @param array $request
+*
+* @return PBXApiResult
+*/
+public function moduleRestAPICallback(array $request): PBXApiResult
+{
+  $res = new PBXApiResult();
+  $res->processor = __METHOD__;
+  $action = strtoupper($request['action']);
+
+  if($action === 'CHECK'){
+     $templateMain       = new PT1CCoreMain();
+     $res                = $templateMain->checkModuleWorkProperly();
+  } else {
+     $res->success = false;
+     $res->messages[] = 'API action not found in moduleRestAPICallback';
+  }
+
+ return $res;
+}
 ```
 
 ## System generators
@@ -326,7 +441,15 @@ Process after enable action in web interface
 Example:
 
 ```php
-public function onAfterModuleEnable(): void;
+/**
+* Process enable action
+*
+* @return void
+*/
+public function onAfterModuleEnable(): void
+{
+  PBX::dialplanReload();
+}
 ```
 
 #### onBeforeModuleDisable
@@ -346,7 +469,15 @@ Process after disable action in web interface
 Example:
 
 ```php
-public function onAfterModuleDisable(): void;
+/**
+* Process after disable action in web interface
+*
+* @return void
+*/
+public function onAfterModuleDisable(): void
+{
+    PBX::dialplanReload();
+}
 ```
 
 #### modelsEventChangeData
@@ -356,7 +487,22 @@ This method calls in the WorkerModelsEvents after receive each models change
 Example:
 
 ```php
-public function modelsEventChangeData($data): void;
+/**
+* Receive information about mikopbx main database changes
+*
+* @param $data
+*/
+public function modelsEventChangeData($data): void
+{
+   // f.e. if user changes PBXLanguage, we will restart all workers
+   if (
+       $data['model'] === PbxSettings::class
+       && $data['recordId'] === 'PBXLanguage'
+     ){
+         $templateMain = new TemplateMain();
+         $templateMain->startAllServices(true);
+    }
+}
 ```
 
 #### modelsEventNeedReload
@@ -378,7 +524,24 @@ Returns array of workers classes for WorkerSafeScripts
 Example:
 
 ```php
-public function getModuleWorkers(): array;
+/**
+* Returns module workers to start it at WorkerSafeScript
+*
+* @return array
+*/
+public function getModuleWorkers(): array
+{
+   return [
+            [
+                'type'   => WorkerSafeScriptsCore::CHECK_BY_BEANSTALK,
+                'worker' => WorkerTelegramMenu::class,
+            ],
+            [
+                'type'   => WorkerSafeScriptsCore::CHECK_BY_AMI,
+                'worker' => WorkerTelegramNotifyAMI::class,
+            ],
+   ];
+}
 ```
 
 ### Crond
@@ -390,7 +553,17 @@ Add crond tasks
 Example:
 
 ```php
-public function createCronTasks(&$tasks): void;
+/**
+* Adds crond tasks
+*
+* @param $tasks
+*/
+public function createCronTasks(&$tasks): void
+{
+  $workerPath = $this->moduleDir.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'safeScript.php';
+  $phpPath    = Util::which('php');
+  $tasks[]    = "*/1 * * * * {$phpPath} -f {$workerPath} > /dev/null 2> /dev/null\n";
+}
 ```
 
 ### Iptables
@@ -402,7 +575,28 @@ Returns array of additional firewall rules for module
 Example:
 
 ```php
-public function getDefaultFirewallRules(): array;
+/**
+* Returns array of additional firewall rules for module
+*
+* @return array
+*/
+public function getDefaultFirewallRules(): array
+{
+   $defaultWeb      = PbxSettings::getValueByKey('WEBPort');
+   $ajamPort        = PbxSettings::getValueByKey('AJAMPort');
+
+    return [
+            'ModulePT1CCore' => [
+                'rules'     => [
+                    ['portfrom' => $ajamPort,  'portto' => $ajamPort,   'protocol' => 'tcp', 'name' => 'PT1CAjamPort'],
+                    ['portfrom' => $defaultWeb,'portto' => $defaultWeb, 'protocol' => 'tcp', 'name' => 'PT1CHTTPPort'],
+
+                ],
+                'action'    => 'allow',
+                'shortName' => 'CTI client 1.0',
+            ],
+        ];
+    }
 ```
 
 ### Fail2Ban
@@ -414,7 +608,21 @@ Generates additional fail2ban jail conf rules
 Example:
 
 ```php
-public function generateFail2BanJails(): string;
+/**
+* Generates additional fail2ban jail conf rules
+*
+* @return string
+*/
+public function generateFail2BanJails():string
+{
+    return "[INCLUDES]\n" .
+            "before = common.conf\n" .
+            "[Definition]\n" .
+            "_daemon = (authpriv.warn |auth.warn )?miko_ajam\n" .
+            'failregex = ^%(__prefix_line)sFrom\s+<HOST>.\s+UserAgent:\s+[a-zA-Z0-9 \s\.,/:;\+\-_\)\(\[\]]*.\s+Fail\s+auth\s+http.$' . "\n" .
+            '            ^%(__prefix_line)sFrom\s+<HOST>.\s+UserAgent:\s+[a-zA-Z0-9 \s\.,/:;\+\-_\)\(\[\]]*.\s+File\s+not\s+found.$' . "\n" .
+            "ignoreregex =\n";
+}
 ```
 
 ### Nginx
@@ -426,6 +634,18 @@ Create additional Nginx locations from modules
 Example:
 
 ```php
-public function createNginxLocations(): string;
+/**
+* Create additional Nginx locations from modules
+*
+*/
+public function createNginxLocations(): string
+{
+   $luaScriptPath = $this->moduleDir.'/Lib/http_get_variables.lua';
+   return "location /pbxcore/api/miko_ajam/getvar {
+            default_type 'text/plain';
+            content_by_lua_file {$luaScriptPath};
+            keepalive_timeout 0;
+		     }";
+}
 ```
 
