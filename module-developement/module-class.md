@@ -230,12 +230,41 @@ public function generateOutRoutAfterDialContext(array $rout): string
 
 #### generateManagerConf
 
-Prepares additional AMI users data in the manager.conf file
+Prepares additional AMI users data in the manager.conf file. This record is not present on the web interface.
 
 Example:
 
 ```php
-public function generateManagerConf(): string;
+/**
+* Prepares additional AMI users data in the manager.conf file
+*
+*
+* @return string
+*/
+public function generateManagerConf(): string
+{
+   $arr_params  = [
+      'Cdr',
+      'Dial',
+      'DialBegin',
+      'DialEnd',
+      'ExtensionStatus',
+      'Hangup',
+           
+   ];
+      $managerUser = self::MODULE_AMI_USER;
+      $conf = "[{$managerUser}]" . PHP_EOL;
+      $conf .= "secret={$managerUser}" . PHP_EOL;
+      $conf .= 'deny=0.0.0.0/0.0.0.0' . PHP_EOL;
+      $conf .= 'permit=127.0.0.1/255.255.255.255' . PHP_EOL;
+      $conf .= 'read=agent,call,cdr,user' . PHP_EOL;
+      $conf .= 'write=system,call,originate,reporting' . PHP_EOL;
+      $conf .= 'eventfilter=!UserEvent: CdrConnector' . PHP_EOL;
+      $conf .= 'eventfilter=Event: (' . implode('|', $arr_params) . ')' . PHP_EOL;
+      $conf .= PHP_EOL;
+
+      return $conf;
+}
 ```
 
 
