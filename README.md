@@ -36,7 +36,7 @@ The main module class helps you to interact with the MikoPBX classes. You can mo
 
 Develop and [debug](module-developement/debuging.md) your module. Ask for help from our community. You are welcome to the big family!
 
-## Make many or provide it for free
+## Make money or provide it for free
 
 When you finished your module you can add it to the MIKO marketplace. We will spread it around all MikoPBX's customers. 
 
