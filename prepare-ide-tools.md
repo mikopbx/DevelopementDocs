@@ -33,6 +33,8 @@ npm install --save-dev @babel/core @babel/cli
 
 #install a babel preset for transforming JavaScript for Airbnb 
 npm install --save-dev babel-preset-airbnb
+npm install --save-dev @babel/preset-env
+
 
 #install php 7.4
 brew install php@7.4
