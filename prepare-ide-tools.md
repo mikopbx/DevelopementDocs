@@ -32,8 +32,7 @@ npx install-peerdeps --dev eslint-config-airbnb-base
 npm install --save-dev @babel/core @babel/cli
 
 #install a babel preset for transforming JavaScript for Airbnb 
-npm install --save-dev babel-preset-airbnb
-npm install --save-dev @babel/preset-env
+ npm install --save-dev babel-preset-airbnb@^3.0.1
 
 
 #install php 7.4
