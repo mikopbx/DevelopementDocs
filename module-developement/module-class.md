@@ -126,6 +126,20 @@ Example:
 public function extensionGenInternalTransfer(): string;
 ```
 
+#### 
+
+#### extensionGenInternalUsersPreDial
+
+Prepares additional rules for \[internal-users\] context section in the extensions.conf file
+
+Example:
+
+```php
+public function extensionGenInternalUsersPreDial(): string;
+```
+
+#### 
+
 #### extensionGenHints
 
 Prepares additional hints for \[internal-hints\] context section in the extensions.conf file
