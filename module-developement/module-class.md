@@ -631,9 +631,22 @@ public function getDefaultFirewallRules(): array
     return [
             'ModulePT1CCore' => [
                 'rules'     => [
-                    ['portfrom' => $ajamPort,  'portto' => $ajamPort,   'protocol' => 'tcp', 'name' => 'PT1CAjamPort'],
-                    ['portfrom' => $defaultWeb,'portto' => $defaultWeb, 'protocol' => 'tcp', 'name' => 'PT1CHTTPPort'],
-
+                     [
+                        'portfrom'    => $defaultWeb,
+                        'portto'      => $defaultWeb,
+                        'protocol'    => 'tcp',
+                        'name'        => 'PT1CHTTPPort',
+                        'portFromKey' => 'WEBPort',
+                        'portToKey'   => 'WEBPort',
+                    ],
+                    [
+                        'portfrom'    => $ajamPort,
+                        'portto'      => $ajamPort,
+                        'protocol'    => 'tcp',
+                        'name'        => 'PT1CAjamPort',
+                        'portFromKey' => 'AJAMPort',
+                        'portToKey'   => 'AJAMPort',
+                    ],
                 ],
                 'action'    => 'allow',
                 'shortName' => 'CTI client 1.0',
