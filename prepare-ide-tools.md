@@ -51,6 +51,9 @@ brew unlink php && brew link --overwrite --force php@7.4
 # Install composer
 # Download and run https://getcomposer.org/Composer-Setup.exe
 
+# Install xdebug PHP extension
+# https://xdebug.org/docs/install#windows
+
 # Install nodeJS
 # Download and run https://nodejs.org/en/download/ 
 
