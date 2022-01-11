@@ -6,8 +6,8 @@ description: >-
 
 # Module main class
 
-On the template repository, you can find an example in the file ModuleTemplate/Lib/**TemplateConf.php**  
-You can use it for your project according to your preferences. The name of this class should be consist of a module unique identifier and ends with the **Conf** word.
+On the template repository, you can find an example in the file ModuleTemplate/Lib/**TemplateConf.php**\
+****You can use it for your project according to your preferences. The name of this class should be consist of a module unique identifier and ends with the **Conf** word.
 
 Good examples:
 
@@ -21,9 +21,9 @@ Non-workable examples:
 * MyFirstModuleConf1
 * TheBestModuleConfig
 
-![The main MikoPBX  module configuration class](../.gitbook/assets/nbscreenshot-2021-02-15-at-17.23.03.png)
+![The main MikoPBX  module configuration class](<../.gitbook/assets/NBScreenShot 2021-02-15 at 17.23.03.png>)
 
-After applying [the instructions](template-module-structure.md) your config class will be renamed automatically. 
+After applying [the instructions](template-module-structure.md) your config class will be renamed automatically.&#x20;
 
 ## Asterisk configs generators
 
@@ -41,7 +41,7 @@ public function generateConfig(): void;
 
 #### extensionGlobals
 
-Prepares additional parameters for \[globals\] section in extensions.conf file
+Prepares additional parameters for \[globals] section in extensions.conf file
 
 Example:
 
@@ -75,7 +75,7 @@ public function extensionGenContexts(): string
 
 #### getIncludeInternal
 
-Prepares additional includes for \[internal\] context section in the extensions.conf file
+Prepares additional includes for \[internal] context section in the extensions.conf file
 
 Example:
 
@@ -98,7 +98,7 @@ public function getIncludeInternal(): string
 
 #### extensionGenInternal
 
-Prepares additional rules for \[internal\] context section in the extensions.conf file
+Prepares additional rules for \[internal] context section in the extensions.conf file
 
 Example:
 
@@ -108,7 +108,7 @@ public function extensionGenInternal(): string;
 
 #### getIncludeInternalTransfer
 
-Prepares additional includes for \[internal-transfer\] context section in the extensions.conf file
+Prepares additional includes for \[internal-transfer] context section in the extensions.conf file
 
 Example:
 
@@ -118,7 +118,7 @@ public function getIncludeInternalTransfer(): string;
 
 #### extensionGenInternalTransfer
 
-Prepares additional rules for \[internal-transfer\] context section in the extensions.conf file
+Prepares additional rules for \[internal-transfer] context section in the extensions.conf file
 
 Example:
 
@@ -126,11 +126,11 @@ Example:
 public function extensionGenInternalTransfer(): string;
 ```
 
-#### 
+####
 
 #### extensionGenInternalUsersPreDial
 
-Prepares additional rules for \[internal-users\] context section in the extensions.conf file
+Prepares additional rules for \[internal-users] context section in the extensions.conf file
 
 Example:
 
@@ -138,11 +138,11 @@ Example:
 public function extensionGenInternalUsersPreDial(): string;
 ```
 
-#### 
+####
 
 #### extensionGenHints
 
-Prepares additional hints for \[internal-hints\] context section in the extensions.conf file
+Prepares additional hints for \[internal-hints] context section in the extensions.conf file
 
 Example:
 
@@ -185,7 +185,7 @@ public function generateIncomingRoutAfterDialContext(string $uniqId): string;
 
 #### generatePublicContext
 
-Prepares additional parameters for \[public-direct-dial\] section in the extensions.conf file
+Prepares additional parameters for \[public-direct-dial] section in the extensions.conf file
 
 Example:
 
@@ -355,7 +355,7 @@ public function overridePJSIPOptions(string $id, array $options):array
 
 #### getFeatureMap
 
-Prepares additional parameters for \[featuremap\] section in the features.conf file
+Prepares additional parameters for \[featuremap] section in the features.conf file
 
 Example:
 
@@ -393,7 +393,7 @@ public function getDependenceModels(): array;
 
 Returns array of additional routes for PBXCoreREST interface from module
 
- \[ControllerClass, ActionMethod, RequestTemplate, HttpMethod, RootUrl, NoAuth \]
+&#x20;\[ControllerClass, ActionMethod, RequestTemplate, HttpMethod, RootUrl, NoAuth ]
 
 Example:
 
@@ -704,4 +704,3 @@ public function createNginxLocations(): string
 		     }";
 }
 ```
-

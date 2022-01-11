@@ -1,15 +1,15 @@
 ---
-description: 'This class helps to install, setup and delete an extension module'
+description: This class helps to install, setup and delete an extension module
 ---
 
 # Module installer class
 
-On the template repository, you can find an example in the file ModuleTemplate/Setup/**PbxExtensionSetup.php**  
-You can use it for your project with some modifications.
+On the template repository, you can find an example in the file ModuleTemplate/Setup/**PbxExtensionSetup.php**\
+****You can use it for your project with some modifications.
 
-![MikoPBX setup class](../.gitbook/assets/nbscreenshot-2021-02-12-at-13.23.49.png)
+![MikoPBX setup class](<../.gitbook/assets/NBScreenShot 2021-02-12 at 13.23.49.png>)
 
-  
+****\
 ****The [PbxExtensionSetup](https://github.com/mikopbx/ModuleTemplate/blob/master/Setup/PbxExtensionSetup.php) class should inherit [PbxExtensionSetupBase](https://github.com/mikopbx/Core/blob/master/src/Modules/Setup/PbxExtensionSetupBase.php) and can override any public functions or methods or implement a new.
 
 ## Install a module procedure
@@ -87,7 +87,7 @@ protected $config;
 protected array $messages;
 ```
 
-Usually, you shouldn't override the **PbxExtensionSetup** class constructor, but if you want don't forget to leave parent class initialization.   
+Usually, you shouldn't override the **PbxExtensionSetup** class constructor, but if you want don't forget to leave parent class initialization. \
 For example, you want to add some extra variable **moduleExtension** into the **PbxExtensionSetup** class:
 
 ```php
@@ -111,8 +111,8 @@ class PbxExtensionSetup extends PbxExtensionSetupBase
 }
 ```
 
-As you can see the main setup function has name **InstallModule**. It is already written on **PbxExtensionSetupBase.**   
-After unzipping module files the PBXCoreRest interface calls the main module installation function. It calls some private functions and sets error messages into the **message** variable. If something goes wrong this method returns **false** and the user receives information from the **message** variable**.**
+As you can see the main setup function has name **InstallModule**. It is already written on **PbxExtensionSetupBase.** \
+****After unzipping module files the PBXCoreRest interface calls the main module installation function. It calls some private functions and sets error messages into the **message** variable. If something goes wrong this method returns **false** and the user receives information from the **message** variable**.**
 
 ```php
 public function installModule(): bool
@@ -146,7 +146,7 @@ public function installModule(): bool
 
 ### **activateLicense**
 
-This function we use only for commercial modules. It can add some trials to your license keys within the installation process. 
+This function we use only for commercial modules. It can add some trials to your license keys within the installation process.&#x20;
 
 ```php
 /**
@@ -171,19 +171,19 @@ You can skip this procedure if you make a non-commercial module or read more inf
 
 ### **installFiles**
 
-This ****function ****we use for making copies of some files, folders and create symlinks for module's files. If your module doesn't have anything special you haven't overriding this procedure. 
+This **** function **** we use for making copies of some files, folders and create symlinks for module's files. If your module doesn't have anything special you haven't overriding this procedure.&#x20;
 
 ### installDB
 
 We use this function to manage some changes with a database structure and data stored in the module database or system database.
 
 {% hint style="info" %}
-Every module has its own sqlite3 database stored on the DB folder within the module folder. 
+Every module has its own sqlite3 database stored on the DB folder within the module folder.&#x20;
 {% endhint %}
 
 We do not recommend you to create and put any sqlite3 database files into your distributive. The best way is to describe all models and relationships between tables according to [Phalcon](https://docs.phalcon.io/4.0/en/annotations#annotations) models annotation instructions. The internal procedure **createSettingsTableByModelsAnnotations** creates a sqlite3 database with all tables or modifies them if you start the module upgrading process.
 
-The next model file class describes the **m\_ModuleTemplate** table with primary **id** and string **textField** __columns:
+The next model file class describes the **m\_ModuleTemplate** table with primary **id** and string **textField** __ columns:
 
 ```php
 <?php
@@ -287,8 +287,8 @@ $setup = new $moduleClass($moduleUniqueID);
 $setup->uninstallModule($keepSettings);
 ```
 
-As you can see the main uninstall function has name **unInstallModule**. It has already written in **PbxExtensionSetupBase** class**.**   
-After user pushes delete or upgrade button the PBXCoreRest interface calls the **unInstallModule** function. It calls some private functions and sets error messages on the **message** variable. If something goes wrong – this method will return **false** and the user will be announced with information from the **message** variable**.**
+As you can see the main uninstall function has name **unInstallModule**. It has already written in **PbxExtensionSetupBase** class**.** \
+****After user pushes delete or upgrade button the PBXCoreRest interface calls the **unInstallModule** function. It calls some private functions and sets error messages on the **message** variable. If something goes wrong – this method will return **false** and the user will be announced with information from the **message** variable**.**
 
 ```php
 public function uninstallModule(bool $keepSettings = false): bool
@@ -308,7 +308,7 @@ public function uninstallModule(bool $keepSettings = false): bool
 
 ### unInstallDB
 
-You can override this function to make some manipulations with data. For example, remove links to the module from system tables.   
+You can override this function to make some manipulations with data. For example, remove links to the module from system tables. \
 By default, this method unregisters the module from the **PbxExtensionModules** table by the unregisterModule function.
 
 ```php
@@ -320,7 +320,7 @@ public function unInstallDB(bool $keepSettings = false): bool
 
 ### unInstallFiles
 
-The method makes a copy of a module database if the **keepSettings** was ****set to true**.** Then it deletes all installed files, folders, symlinks.  
+The method makes a copy of a module database if the **keepSettings** was **** set to true**.** Then it deletes all installed files, folders, symlinks.\
 If your module has some executable binaries you should kill all processes before deleting them. Also, if your module produced any temporary or log files, you should delete them as well.
 
 ```php
@@ -338,6 +338,4 @@ public function unInstallFiles($keepSettings = false): bool
      return parent::unInstallFiles($keepSettings);
 }
 ```
-
-
 

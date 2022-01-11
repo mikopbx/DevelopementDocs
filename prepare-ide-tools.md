@@ -112,7 +112,7 @@ You have to download it by the next [link](https://www.jetbrains.com/phpstorm/) 
 
 Create a new **PHP empty Project from** existing sources.
 
-![MikoPBX module structure](.gitbook/assets/screenshot-2021-02-04-at-15.24.30.png)
+![MikoPBX module structure](<.gitbook/assets/Screenshot 2021-02-04 at 15.24.30.png>)
 
 Setup the **composer** executable path according to this [manual](https://www.jetbrains.com/help/phpstorm/composer-page.html).
 

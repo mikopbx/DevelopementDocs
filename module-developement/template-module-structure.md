@@ -10,7 +10,7 @@ To create a new module for MikoPBX, you can use the [ModuleTemplate](https://git
 
 Every MikoPBX module must have a unique identifier, i.e. you are developing a call back module with the identifier – **ModuleCalbackFromWebsite**
 
-Go to your development root folder and execute the next script: 
+Go to your development root folder and execute the next script:&#x20;
 
 {% tabs %}
 {% tab title="Linux/Mac" %}
@@ -25,7 +25,7 @@ It clones the **ModuleTemplate** repository and renames folders, files, namespac
 
 Now you can create a zip archive and install your new module on the MikoPBX server.
 
-![](../.gitbook/assets/screenflow.gif)
+![](../.gitbook/assets/ScreenFlow.gif)
 
 ### Next steps
 
@@ -33,22 +33,22 @@ Now you can create a zip archive and install your new module on the MikoPBX serv
 Read the article [Prepare IDE and system tools](../prepare-ide-tools.md) before following the next instructions.
 {% endhint %}
 
-You should load the **mikopbx/core** package and dependent libraries it helps to resolve references between MikoPBX class names.  
+You should load the **mikopbx/core** package and dependent libraries it helps to resolve references between MikoPBX class names. &#x20;
 
 {% tabs %}
 {% tab title="Linux/Mac" %}
-```text
+```
 cd ~/PhpstormProjects/ModuleCalbackFromWebsite
 composer install
 ```
 {% endtab %}
 {% endtabs %}
 
-Next, you can create a git repository for a new module and commit all new code. 
+Next, you can create a git repository for a new module and commit all new code.&#x20;
 
 {% tabs %}
 {% tab title="Linux/Mac" %}
-```text
+```
 git init
 echo "vendor/" > .gitignore
 git add .
@@ -61,14 +61,12 @@ If you have a remote git repository you can push your module into it.
 
 {% tabs %}
 {% tab title="Linux/Mac" %}
-```text
+```
 git remote add origin <url>
 git push -u origin master
 ```
 {% endtab %}
 {% endtabs %}
-
-
 
 
 
