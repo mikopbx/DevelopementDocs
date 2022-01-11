@@ -82,6 +82,25 @@ brew install phalcon@4.1.0 --build-from-source
 {% endtab %}
 {% endtabs %}
 
+### Clone the Core MikoPBX repository
+
+Use GIT command to make similar to picture folder sctructure with MikoPBX sources.
+
+```
+H:
+├──MikoPBXTools
+└──MikoPBX
+    ├──Core <- Clone https://github.com/mikopbx/Core.git here
+    └──Extensions
+```
+
+Install third party PHP libraries to MikoPBX/Core folder
+
+```
+cd MikoPBX/Core
+composer install --ignore-platform-reqs 
+```
+
 ### PHPStorm IDE
 
 We advise using PHPStorm IDE because all MikoPBX code was written with this tool.
@@ -93,3 +112,6 @@ Create a new **PHP empty Project from** existing sources.
 ![MikoPBX module structure](.gitbook/assets/screenshot-2021-02-04-at-15.24.30.png)
 
 Setup the **composer** executable path according to this [manual](https://www.jetbrains.com/help/phpstorm/composer-page.html).
+
+Setup the **PHP** interpreter path according to this [manual](https://www.jetbrains.com/help/phpstorm/configuring-local-interpreter.html).
+
