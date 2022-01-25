@@ -37,14 +37,14 @@ In this example:
 
 {% tabs %}
 {% tab title="curl" %}
-```
+```bash
 curl -b auth-cookies.txt \
 'http://172.16.156.223/pbxcore/api/sip/getPeersStatuses'
 ```
 
 JSON Response:
 
-```
+```json
 {
   "jsonapi": {
     "version": "1.0"
@@ -85,7 +85,7 @@ JSON Response:
 
 {% tabs %}
 {% tab title="curl" %}
-```
+```bash
 curl -b auth-cookies.txt \
 http://172.16.156.223/pbxcore/api/sip/getSipPeer \
 --data '{"peer":"201"}'
@@ -93,10 +93,10 @@ http://172.16.156.223/pbxcore/api/sip/getSipPeer \
 
 JSON Response:
 
-```
+```json
 {
   "jsonapi": {
-    "version": "1.0"
+    "version": "1.son0"
   },
   "result": true,
   "data": {
@@ -140,14 +140,14 @@ JSON Response:
 
 {% tabs %}
 {% tab title="curl" %}
-```
+```bash
 curl -b auth-cookies.txt \
 'http://172.16.156.223/pbxcore/api/sip/getRegistry'
 ```
 
 JSON Response:
 
-```
+```json
 {
   "jsonapi": {
     "version": "1.0"
