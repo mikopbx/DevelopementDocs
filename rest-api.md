@@ -142,7 +142,7 @@ JSON Response:
 {% endtab %}
 {% endtabs %}
 
-## Get providers statuses
+## Get provider statuses
 
 {% tabs %}
 {% tab title="curl" %}
