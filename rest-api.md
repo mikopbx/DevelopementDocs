@@ -6,7 +6,7 @@ If requests are made from localhost, then authorization is not required.
 
 {% tabs %}
 {% tab title="curl" %}
-```
+```bash
 curl 'http://172.16.156.223/admin-cabinet/session/start' \
 -X 'POST' --cookie-jar auth-cookies.txt \
 -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
@@ -16,7 +16,7 @@ curl 'http://172.16.156.223/admin-cabinet/session/start' \
 
 JSON response:
 
-```
+```json
 {"success":true,"reload":"index\/index","message":[]}
 ```
 {% endtab %}
