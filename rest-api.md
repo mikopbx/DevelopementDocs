@@ -17,8 +17,14 @@ curl 'http://172.16.156.223/admin-cabinet/session/start' \
 JSON response:
 
 ```json
-{"success":true,"reload":"index\/index","message":[]}
+{
+  "success": true,
+  "reload": "index/index",
+  "message": []
+}
 ```
+
+
 {% endtab %}
 
 {% tab title="Second Tab" %}
