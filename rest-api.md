@@ -5,7 +5,7 @@
 If requests are made from localhost, then authorization is not required.
 
 {% tabs %}
-{% tab title="curl" %}
+{% tab title="BASH" %}
 ```bash
 curl 'http://172.16.156.223/admin-cabinet/session/start' \
 -X 'POST' --cookie-jar auth-cookies.txt \
@@ -13,6 +13,35 @@ curl 'http://172.16.156.223/admin-cabinet/session/start' \
 -H 'X-Requested-With: XMLHttpRequest' \
 --data 'login=admin&password=adminpassword'
 ```
+{% endtab %}
+
+{% tab title="PHP" %}
+```php
+$host     = '172.16.156.223';
+$login    = 'admin';
+$password = 'admin';
+
+$jar    = new \GuzzleHttp\Cookie\CookieJar;
+$client = new \GuzzleHttp\Client(['cookies' => $jar]);
+$options = [
+    'headers' => [
+        "Content-Type" => "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With" => "XMLHttpRequest"
+    ],
+    'body'   => http_build_query(['login' => $login,'password' => $password])
+];
+$resultHttp = $client->request('POST', "http://$host/admin-cabinet/session/start", $options);
+$code       = $resultHttp->getStatusCode();
+if($code === 200) {
+    $content = $resultHttp->getBody()->getContents();
+    $authId  = $jar->getCookieByName('PHPSESSID');
+    print_r($authId->getValue());
+}
+```
+
+Use **$authId** for other API requests.
+{% endtab %}
+{% endtabs %}
 
 JSON response:
 
@@ -25,12 +54,8 @@ JSON response:
 ```
 
 
-{% endtab %}
 
-{% tab title="Second Tab" %}
 
-{% endtab %}
-{% endtabs %}
 
 In this example:
 
@@ -42,11 +67,34 @@ In this example:
 ## Get peer statuses&#x20;
 
 {% tabs %}
-{% tab title="curl" %}
+{% tab title="BASH" %}
 ```bash
 curl -b auth-cookies.txt \
 'http://172.16.156.223/pbxcore/api/sip/getPeersStatuses'
 ```
+{% endtab %}
+
+{% tab title="PHP" %}
+```php
+$host   = '172.16.156.223';
+$authIdHP = 'SET AUTH ID';
+$jar = \GuzzleHttp\Cookie\CookieJar::fromArray(
+    [
+        'PHPSESSID' => $authId
+    ],
+    $host
+);
+
+$client = new \GuzzleHttp\Client(['cookies' => $jar]);
+$resultHttp = $client->request('GET', "http://$host/pbxcore/api/sip/getPeersStatuses");
+$code       = $resultHttp->getStatusCode();
+if($code === 200) {
+    $content = $resultHttp->getBody()->getContents();
+    print_r($content);
+}
+```
+{% endtab %}
+{% endtabs %}
 
 JSON Response:
 
@@ -80,22 +128,43 @@ JSON Response:
   }
 }
 ```
-{% endtab %}
-
-{% tab title="Second Tab" %}
-
-{% endtab %}
-{% endtabs %}
 
 ## Get peer status
 
 {% tabs %}
-{% tab title="curl" %}
+{% tab title="BASH" %}
 ```bash
 curl -b auth-cookies.txt \
 http://172.16.156.223/pbxcore/api/sip/getSipPeer \
 --data '{"peer":"201"}'
 ```
+{% endtab %}
+
+{% tab title="PHP" %}
+```php
+$host   = '172.16.156.223';
+$authId = 'SET AUTH ID';
+$number = '203';
+$jar = \GuzzleHttp\Cookie\CookieJar::fromArray(
+    [
+        'PHPSESSID' => $authId
+    ],
+    $host
+);
+
+$options = [
+    'body'   => json_encode(['peer' => $number])
+];
+$client = new \GuzzleHttp\Client(['cookies' => $jar]);
+$resultHttp = $client->request('POST', "http://$host/pbxcore/api/sip/getSipPeer");
+$code       = $resultHttp->getStatusCode();
+if($code === 200) {
+    $content = $resultHttp->getBody()->getContents();
+    print_r($content);
+}
+```
+{% endtab %}
+{% endtabs %}
 
 JSON Response:
 
@@ -135,21 +204,38 @@ JSON Response:
   }
 }
 ```
-{% endtab %}
-
-{% tab title="Second Tab" %}
-
-{% endtab %}
-{% endtabs %}
 
 ## Get provider statuses
 
 {% tabs %}
-{% tab title="curl" %}
+{% tab title="SHELL" %}
 ```bash
 curl -b auth-cookies.txt \
 'http://172.16.156.223/pbxcore/api/sip/getRegistry'
 ```
+{% endtab %}
+
+{% tab title="PHP" %}
+```php
+$host   = '172.16.156.223';
+$authId = 'SET AUTH ID';
+$jar = \GuzzleHttp\Cookie\CookieJar::fromArray(
+    [
+        'PHPSESSID' => $authId
+    ],
+    $host
+);
+
+$client = new \GuzzleHttp\Client(['cookies' => $jar]);
+$resultHttp = $client->request('GET', "http://$host/pbxcore/api/sip/getRegistry");
+$code       = $resultHttp->getStatusCode();
+if($code === 200) {
+    $content = $resultHttp->getBody()->getContents();
+    print_r($content);
+}
+```
+{% endtab %}
+{% endtabs %}
 
 JSON Response:
 
@@ -183,10 +269,4 @@ JSON Response:
   }
 }
 ```
-{% endtab %}
-
-{% tab title="Second Tab" %}
-
-{% endtab %}
-{% endtabs %}
 
