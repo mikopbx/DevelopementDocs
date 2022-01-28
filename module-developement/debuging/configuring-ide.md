@@ -18,11 +18,13 @@ Go to "**Settings**" - "**Preferences**" - "**PHP**" - "**Debug**" - "**DBGp Pro
 
 ## Setup Deployment
 
-1. Enable "**Tools**" - "**Deployment**" - "**Automatic Upload**"
-2. Go to "**Tools**" - "**Deployment**" - "**Configuration...**"
-3. Run "**Tools**" - "**Deployment**" - "**Browse Remote Hosts**" to open the panel "**Remote Host**"
+1. Run "**Tools**" - "**Deployment**" - "**Browse Remote Hosts**" to open the panel "**Remote Host**"
+2. Enable "**Tools**" - "**Deployment**" - "**Automatic Upload**"
+3. Go to "**Tools**" - "**Deployment**" - "**Configuration...**"
 4. Add new SFTP connection&#x20;
 5. Setup mappings&#x20;
+
+
 
 #### Main catalogs MikoPBX
 
