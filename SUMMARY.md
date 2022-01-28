@@ -11,7 +11,11 @@
 * [Module main class](module-developement/module-class.md)
 * [Module interface](module-developement/module-interface-empty.md)
 * [Translations(empty)](module-developement/translations.md)
-* [Debuging (empty)](module-developement/debuging.md)
+* [Debuging](module-developement/debuging/README.md)
+  * [Configuring IDE](module-developement/debuging/configuring-ide.md)
+  * [Debug PHP-AGI](module-developement/debuging/debug-php-agi.md)
+  * [Debug PHP Worker](module-developement/debuging/debug-php-worker.md)
+  * [Debug PHP Script](module-developement/debuging/debug-php-script.md)
 
 ## Internal structure
 
