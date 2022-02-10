@@ -4,6 +4,25 @@ description: How to organize workspace for MikoPBX extension developement.
 
 # Prepare IDE and system tools
 
+## Example of organizing a working directory
+
+```
+MikoPBX
+├── Core
+│   ├── ...
+│   └── ...
+├── Extensions
+│   ├── ModuleBackup
+│   └── ModuleYourModule
+└── node_modules
+```
+
+* **Core** - files from the repository [mikopbx/Core](https://github.com/mikopbx/Core)
+* **Extensions** - directory for storing module files
+* **ModuleBackup** - files from the repository[ mikopbx/ModuleBackup](https://github.com/mikopbx/ModuleBackup)
+* **ModuleYourModule** - directory with files of your module
+* **node\_modules** - модули node-js
+
 ## Environment
 
 
@@ -22,6 +41,18 @@ xcode-select --install
 # Install Composer
 brew install composer
 
+# Install php 7.4
+brew install php@7.4
+brew unlink php && brew link --overwrite --force php@7.4
+```
+
+Install babel files to be able to convert JS files
+
+```
+// Create work dir 
+mkdir -p ~/MikoPBX/Extensions;
+cd ~/MikoPBX;
+
 # Install Node package manager
 brew install node
 
@@ -33,10 +64,6 @@ npm install --save-dev @babel/core @babel/cli
 
 # Install a babel preset for transforming JavaScript for Airbnb 
 npm install --save-dev babel-preset-airbnb@^3.0.1
-
-# Install php 7.4
-brew install php@7.4
-brew unlink php && brew link --overwrite --force php@7.4
 ```
 {% endtab %}
 
