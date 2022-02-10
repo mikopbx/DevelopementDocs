@@ -21,7 +21,7 @@ MikoPBX
 * **Extensions** - directory for storing module files
 * **ModuleBackup** - files from the repository[ mikopbx/ModuleBackup](https://github.com/mikopbx/ModuleBackup)
 * **ModuleYourModule** - directory with files of your module
-* **node\_modules** - модули node-js
+* **node\_modules** - node-js modules
 
 ## Environment
 
