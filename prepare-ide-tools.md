@@ -145,3 +145,44 @@ Setup the **composer** executable path according to this [manual](https://www.je
 
 Setup the **PHP** interpreter path according to this [manual](https://www.jetbrains.com/help/phpstorm/configuring-local-interpreter.html).
 
+### PHPStorm: setup Babel
+
+Babel is a toolchain that is mainly used to convert ECMAScript 2015+ code into a backwards compatible version of JavaScript in current and older browsers or environments.
+
+Babel guarantees that the JS code will work the same in all web browsers.
+
+The source JS files are located in directories:
+
+* `MikoPBX/Core/sites/admin-cabinet/assets/js/src`&#x20;
+* `MikoPBX/Extensions/*/public/assets/js/src`
+
+Files that the web interface uses are located in directories:
+
+* `MikoPBX/Core/sites/admin-cabinet/assets/js/src`
+* `MikoPBX/Extensions/*/public/assets/js`
+
+With any modification of the source file, babel must create a final file.
+
+1. Go to  `Preferences / Tools / File Watchers`
+2. Click to "**Add**" button
+3. Choose template "**Babel**"
+4. Set "**Name**" - Babel Core
+5. Set "**Program**" `$ProjectFileDir$/../node_modules/.bin/babel`
+6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$/../pbx/$FileDirName$ --source-maps inline --presets airbnb`&#x20;
+7. Set "**Output path to refresh**": `$FileParentDir$/../pbx/$FileDirName$/$FileprNameWithoutExtension$.js:$FileParentDir$/../pbx/$FileDirName$/$FileNameWithoutExtension$.js.map`&#x20;
+8. Set "**Auto-save edited files to trigger the watcher**"T
+9. Set "**Trigger the watcher on external changes**"&#x20;
+10. Setup "**Scope**", add all files from `MikoPBX/Core/sites/admin-cabinet/assets/js/src`
+
+![](.gitbook/assets/ide-file-watcher-edit-core.png)
+
+1. Go to  `Preferences / Tools / File Watchers`
+2. Click to "**Add**" button
+3. Choose template "**Babel**"
+4. Set "**Name**" - Babel Modules
+5. Set "**Program**" `$ProjectFileDir$/../node_modules/.bin/babel`
+6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$ --source-maps --presets airbnb`&#x20;
+7. Set "**Output path to refresh**": `$FileParentDir$/$FileNameWithoutExtension$.js:$FileParentDir$/$FileNameWithoutExtension$.js.map`&#x20;
+8. Set "**Auto-save edited files to trigger the watcher**"T
+9. Set "**Trigger the watcher on external changes**"&#x20;
+10. Setup "**Scope**", add all files from `MikoPBX/Extensions/*/public/assets/js/src`
