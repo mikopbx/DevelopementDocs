@@ -21,4 +21,4 @@ In MikoPBX, it is enough to run the command:
 xdebug-enable-agi 192.168.1.65
 ```
 
-Be careful! Debugging the API can disrupt the operation of the PBX
+Be careful! Debugging the AGI can disrupt the operation of the PBX
