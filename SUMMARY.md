@@ -1,7 +1,10 @@
 # Table of contents
 
 * [MikoPBX development guide](README.md)
-* [Prepare IDE and system tools](prepare-ide-tools.md)
+* [Prepare IDE and system tools](prepare-ide-tools/README.md)
+  * [Windows](prepare-ide-tools/windows.md)
+  * [Linux](prepare-ide-tools/linux.md)
+  * [Mac](prepare-ide-tools/mac.md)
 
 ## Modules developement <a href="#module-developement" id="module-developement"></a>
 

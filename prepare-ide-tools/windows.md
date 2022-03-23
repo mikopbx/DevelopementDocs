@@ -2,7 +2,7 @@
 description: How to organize workspace for MikoPBX extension developement.
 ---
 
-# Prepare IDE and system tools
+# Windows
 
 ## Example of organizing a working directory
 
@@ -14,61 +14,22 @@ MikoPBX
 ├── Extensions
 │   ├── ModuleBackup
 │   └── ModuleYourModule
-└── node_modules
+└── MikoPBXUtils
+    └──node_modules
 ```
 
 * **Core** - files from the repository [mikopbx/Core](https://github.com/mikopbx/Core)
 * **Extensions** - directory for storing module files
 * **ModuleBackup** - files from the repository[ mikopbx/ModuleBackup](https://github.com/mikopbx/ModuleBackup)
 * **ModuleYourModule** - directory with files of your module
+* **MikoPBXUtils** - directory with external tools &#x20;
 * **node\_modules** - node-js modules
 
 ## Environment
 
-
-
 We widely use the **composer** to manage dependents libraries, **NodeJS** runtime for Javascript code processing.
 
-{% tabs %}
-{% tab title="Mac" %}
 ```bash
-# XCode Command Line Tools
-xcode-select --install
-
-# Install Homebrew
-/bin/bash -c "$(curl -fsSL https://git.io/JIY6g)"
-
-# Install Composer
-brew install composer
-
-# Install php 7.4
-brew install php@7.4
-brew unlink php && brew link --overwrite --force php@7.4
-```
-
-Install babel files to be able to convert JS files
-
-```
-// Create work dir 
-mkdir -p ~/MikoPBX/Extensions;
-cd ~/MikoPBX;
-
-# Install Node package manager
-brew install node
-
-# Install AirBnb linter
-npx install-peerdeps --dev eslint-config-airbnb-base
-
-# Install Babel toolchain
-npm install --save-dev @babel/core @babel/cli
-
-# Install a babel preset for transforming JavaScript for Airbnb 
-npm install --save-dev babel-preset-airbnb@^3.0.1
-```
-{% endtab %}
-
-{% tab title="Windows" %}
-```
 # Install PHP 7.4
 # https://dev.to/amulya_shahi/how-to-download-install-php-7-4-6-manually-on-windows-10-4io0
 
@@ -84,44 +45,63 @@ npm install --save-dev babel-preset-airbnb@^3.0.1
 # Install nodeJS
 # Download and run https://nodejs.org/en/download/ 
 
-# Create DIR for example H:/MikoPBXUtils, enter to it
-
-# Install AirBnb linter
-npx install-peerdeps --dev eslint-config-airbnb-base
-
-# Install Babel toolchain
-npm install --save-dev @babel/core @babel/cli
-
-# Install a babel preset for transforming JavaScript for Airbnb 
-npm install --save-dev babel-preset-airbnb@^3.0.1
+# Create DIR for example MikoPBX/MikoPBXUtils, enter to it
 ```
-{% endtab %}
-{% endtabs %}
+
+In MikoPBXUtils dir create file `babel.config.json`:
+
+{% code title="babel.config.json" %}
+```json
+{
+  "presets": [["airbnb", {
+    "targets": {
+      "chrome": 50,
+      "ie": 11,
+      "firefox": 45
+    }
+  }]]
+}
+```
+{% endcode %}
+
+In MikoPBXUtils dir create file `package.json`:
+
+{% code title="package.json" %}
+```json
+{
+  "devDependencies": {
+    "@babel/cli": "^7.14.3",
+    "@babel/core": "^7.14.3",
+    "@babel/polyfill": "^7.12.1",
+    "@babel/preset-env": "^7.14.2",
+    "babel-preset-airbnb": "^5.0.0",
+    "eslint": "^7.27.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.23.3"
+  }
+}
+```
+{% endcode %}
+
+Install all from package.json file
+
+```bash
+npm install
+```
 
 {% hint style="info" %}
 At this point, I strongly recommend closing **ALL your terminal tabs and windows**. This will mean opening a new terminal to continue with the next step. This is strongly recommended because some really strange path issues can arise with existing terminals (trust me, I have seen it!).
 {% endhint %}
-
-{% tabs %}
-{% tab title="Mac" %}
-```bash
-#install phalcon
-brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
-brew install phalcon@4.1.0 --build-from-source 
-```
-{% endtab %}
-{% endtabs %}
 
 ### Clone the Core MikoPBX repository
 
 Use GIT command to make similar to picture folder sctructure with MikoPBX sources.
 
 ```
-H:
-├──MikoPBXTools
-└──MikoPBX
-    ├──Core <- Clone https://github.com/mikopbx/Core.git here
-    └──Extensions
+MikoPBX
+├── Core <- Clone https://github.com/mikopbx/Core.git here
+├── Extensions
+└── MikoPBXUtils
 ```
 
 Install third party PHP libraries to MikoPBX/Core folder
@@ -131,6 +111,31 @@ cd MikoPBX/Core
 composer install --ignore-platform-reqs 
 ```
 
+### Create a new module structure
+
+To create a new module for MikoPBX, you can use the [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate) repository as ready for use template.
+
+Every MikoPBX module must have a unique identifier, i.e. you are developing a call back module with the identifier – **ModuleYourModule**
+
+```
+MikoPBX
+├── Core 
+├── Extensions
+│   └── ModuleYourModule
+└── MikoPBXUtils
+```
+
+Сopy the script [`mod_replace.py`](https://github.com/mikopbx/ExtensionsDevTools/blob/master/mod\_replace.py) to the Extensions dir and run it. It clones the **ModuleTemplate** repository and renames folders, files, namespaces and class names according to the new module unique id – **ModuleYourModule.**
+
+```
+cd MikoPBX/Extensions
+python mod_replace.py ModuleMyNewMod
+```
+
+{% hint style="info" %}
+The name of the new module must begin with 'Module'
+{% endhint %}
+
 ### PHPStorm IDE
 
 We advise using PHPStorm IDE because all MikoPBX code was written with this tool.
@@ -139,7 +144,7 @@ You have to download it by the next [link](https://www.jetbrains.com/phpstorm/) 
 
 Create a new **PHP empty Project from** existing sources.
 
-![MikoPBX module structure](<.gitbook/assets/Screenshot 2021-02-04 at 15.24.30.png>)
+![](../.gitbook/assets/ProjectWin.jpg)
 
 Setup the **composer** executable path according to this [manual](https://www.jetbrains.com/help/phpstorm/composer-page.html).
 
@@ -158,31 +163,50 @@ The source JS files are located in directories:
 
 Files that the web interface uses are located in directories:
 
-* `MikoPBX/Core/sites/admin-cabinet/assets/js/src`
+* `MikoPBX/Core/sites/admin-cabinet/assets/js/pbx`
 * `MikoPBX/Extensions/*/public/assets/js`
 
 With any modification of the source file, babel must create a final file.
 
-1. Go to  `Preferences / Tools / File Watchers`
+1. Go to  `Settings / Tools / File Watchers`
 2. Click to "**Add**" button
 3. Choose template "**Babel**"
 4. Set "**Name**" - Babel Core
-5. Set "**Program**" `$ProjectFileDir$/../node_modules/.bin/babel`
+5. Set "**Program**" `$ProjectFileDir$\MikoPBXUtils\node_modules\.bin\babel`
 6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$/../pbx/$FileDirName$ --source-maps inline --presets airbnb`&#x20;
 7. Set "**Output path to refresh**": `$FileParentDir$/../pbx/$FileDirName$/$FileprNameWithoutExtension$.js:$FileParentDir$/../pbx/$FileDirName$/$FileNameWithoutExtension$.js.map`&#x20;
-8. Set "**Auto-save edited files to trigger the watcher**"T
+8. Set "**Auto-save edited files to trigger the watcher**"
 9. Set "**Trigger the watcher on external changes**"&#x20;
-10. Setup "**Scope**", add all files from `MikoPBX/Core/sites/admin-cabinet/assets/js/src`
+10. Set "**Working directory**": `$ProjectFileDir$\MikoPBXUtils`
+11. Setup "**Scope**"
+12. Set "**Name**" **** - Project Core
+13. Set "**Pattern**": `file:Core/sites/admin-cabinet/assets/js/src/*.js`
 
-![](.gitbook/assets/ide-file-watcher-edit-core.png)
+![](../.gitbook/assets/BabelCore.jpg)
 
-1. Go to  `Preferences / Tools / File Watchers`
+![](../.gitbook/assets/ScopesCoreWin.jpg)
+
+1. Go to  `Settings / Tools / File Watchers`
 2. Click to "**Add**" button
 3. Choose template "**Babel**"
 4. Set "**Name**" - Babel Modules
-5. Set "**Program**" `$ProjectFileDir$/../node_modules/.bin/babel`
-6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$ --source-maps --presets airbnb`&#x20;
-7. Set "**Output path to refresh**": `$FileParentDir$/$FileNameWithoutExtension$.js:$FileParentDir$/$FileNameWithoutExtension$.js.map`&#x20;
-8. Set "**Auto-save edited files to trigger the watcher**"T
+5. Set "**Program**" `$ProjectFileDir$\MikoPBXUtils\node_modules\.bin\babel`
+6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$ --source-maps inline --presets airbnb`&#x20;
+7. Set "**Output path to refresh**": `$FileParentDir$\$FileNameWithoutExtension$.js:$FileParentDir$\$FileNameWithoutExtension$.js.map`&#x20;
+8. Set "**Auto-save edited files to trigger the watcher**"
 9. Set "**Trigger the watcher on external changes**"&#x20;
-10. Setup "**Scope**", add all files from `MikoPBX/Extensions/*/public/assets/js/src`
+10. Set "**Working directory**": `$ProjectFileDir$\MikoPBXUtils`&#x20;
+11. Setup "**Scope**"
+12. Set "**Name**" **** - Project Modules
+13. Set "**Pattern**":`file:Extensions/*/public/assets/js/src/*.js`
+
+![](../.gitbook/assets/BabelModules.jpg)
+
+![](../.gitbook/assets/ScopesModulesWin.jpg)
+
+### PHPStorm: setup Phalcon Autocomplete
+
+1. Go to  `Settings / Plugins`
+2. Search "Phalcon" and install it&#x20;
+
+![](../.gitbook/assets/Phalcon.jpg)

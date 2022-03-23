@@ -12,7 +12,7 @@ MikoPBX is an open-source GUI (graphical user interface) that controls and manag
 
 ## How to start module development
 
-Firstly you should prepare your development environment according to[ the ](prepare-ide-tools.md)[instructions](module-developement/template-module-structure.md). You will prepare your IDE, install some dependency and special tools to make your workspace well organized for the right developing process.
+Firstly you should prepare your development environment according to[ the ](prepare-ide-tools/)[instructions](module-developement/template-module-structure.md). You will prepare your IDE, install some dependency and special tools to make your workspace well organized for the right developing process.
 
 Next, you have to clone the template repository and rename folders, files and classes with a special script according to [these instructions](module-developement/template-module-structure.md). Finally, you will have the new module with the right folder and classes structure.&#x20;
 

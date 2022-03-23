@@ -4,24 +4,7 @@ description: Clone module template and prepare it for developing
 
 # How to start
 
-### Create a new module structure
-
-To create a new module for MikoPBX, you can use the [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate) repository as ready for use template.
-
-Every MikoPBX module must have a unique identifier, i.e. you are developing a call back module with the identifier – **ModuleCalbackFromWebsite**
-
-Go to your development root folder and execute the next script:&#x20;
-
-{% tabs %}
-{% tab title="Linux/Mac" %}
-```bash
-cd ~/PhpstormProjects
-curl -sL https://git.io/JtzEa | bash /dev/stdin ModuleCalbackFrom
-```
-{% endtab %}
-{% endtabs %}
-
-It clones the **ModuleTemplate** repository and renames folders, files, namespaces and class names according to the new module unique id – **ModuleCalbackFromWebsite.**
+### Try to install it on MikoPBX
 
 Now you can create a zip archive and install your new module on the MikoPBX server.
 
@@ -30,7 +13,7 @@ Now you can create a zip archive and install your new module on the MikoPBX serv
 ### Next steps
 
 {% hint style="info" %}
-Read the article [Prepare IDE and system tools](../prepare-ide-tools.md) before following the next instructions.
+Read the article [Prepare IDE and system tools](../prepare-ide-tools/) before following the next instructions.
 {% endhint %}
 
 You should load the **mikopbx/core** package and dependent libraries it helps to resolve references between MikoPBX class names. &#x20;
