@@ -6,13 +6,13 @@
 {% tab title="Telnet (AMI)" %}
 Connect to the PBX via ssh. Run the command to connect to the AMI:
 
-```
+```shell
 busybox telnet 127.0.0.1 5038 
 ```
 
 Perform authorization:
 
-```
+```shell
 Action: Login
 Username: phpagi
 Secret: phpagi
@@ -41,16 +41,17 @@ Variable: SIPADDHEADER="Call-Info:\;answer-after=0",pt1c_cid=203,ALLOW_MULTY_ANS
 {% tab title="Curl AJAM" %}
 Connect to the PBX via ssh. Run the command to connect to the AMI:
 
-```
+```shell
 h='127.0.0.1';
 u='phpagi';
 p='phpagi';
+port='8088';
 
 from='201';
 to='203';
 
 # Login
-tcookie="$(curl -I "http://${h}:8088/asterisk/rawman?action=login&username=${u}&secret=${p}" | grep Cookie | awk -F': ' '{ print$2 }')";
+tcookie="$(curl -I "http://${h}:${port}/asterisk/rawman?action=login&username=${u}&secret=${p}" | grep Cookie | awk -F': ' '{ print$2 }')";
 
 # Send Originate command to call from ${from} to ${to}
 curl --cookie "${tcookie}" "http://${h}:8088/asterisk/rawman?action=originate&channel=Local/${from}@internal-originate&exten=${to}&context=all_peers&priority=1&callerid=${from}&Variable=pt1c_cid=${to},SIPADDHEADER="Call-Info:\;answer-after=0"&ALLOW_MULTY_ANSWER=1";
