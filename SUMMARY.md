@@ -25,8 +25,10 @@
 ***
 
 * [Admin interface(empty)](admin-interface.md)
+* [API](api/README.md)
+  * [REST API](api/rest-api.md)
+  * [AMI / AJAM](api/ami-ajam.md)
 * [Core(empty)](core.md)
-* [REST API](rest-api.md)
 
 ## Marketplace
 

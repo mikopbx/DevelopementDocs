@@ -24,7 +24,7 @@ Before starting development you have to deep into the MikoPBX internal structure
 
 Also, we described [the admin interface structure](admin-interface.md), you can use int as a good example of how to develop a module interface. There is a lot of JavaScript code and PHP classes that organizes an user interaction.&#x20;
 
-Some actions require root access to system services. You can interact with them by the [MikoPBX REST API](rest-api.md).
+Some actions require root access to system services. You can interact with them by the [MikoPBX REST API](api/rest-api.md).
 
 ## Modify your module
 
