@@ -57,5 +57,38 @@ tcookie="$(curl -I "http://${h}:${port}/asterisk/rawman?action=login&username=${
 curl --cookie "${tcookie}" "http://${h}:8088/asterisk/rawman?action=originate&channel=Local/${from}@internal-originate&exten=${to}&context=all_peers&priority=1&callerid=${from}&Variable=pt1c_cid=${to},SIPADDHEADER="Call-Info:\;answer-after=0"&ALLOW_MULTY_ANSWER=1";
 ```
 {% endtab %}
+
+{% tab title="Call file" %}
+Make new file&#x20;
+
+```
+touch /tmp/originate.call;
+```
+
+Add command to file (call from 201 to 203):
+
+```
+Channel: Local/201@internal-originate
+Context: all_peers
+Extension:203
+Priority: 1
+Callerid: 201
+Archive: yes
+
+Setvar: SIPADDHEADER=Call-Info:\;answer-after=0
+Setvar: pt1c_cid=203
+Setvar: ALLOW_MULTY_ANSWER=1
+```
+
+Move file to asterisk spool dir:
+
+```
+mv /tmp/originate.call /storage/usbdisk1/mikopbx/astspool/outgoing
+```
+
+
+{% endtab %}
 {% endtabs %}
+
+
 
