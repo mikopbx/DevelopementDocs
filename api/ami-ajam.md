@@ -92,3 +92,44 @@ mv /tmp/originate.call /storage/usbdisk1/mikopbx/astspool/outgoing
 
 
 
+## Redirect
+
+Forwarding without consultation
+
+{% tabs %}
+{% tab title="Telnet (AMI)" %}
+```
+Action: Redirect
+Channel: PJSIP/201-000001
+Context: internal-transfer
+Exten: 203
+Priority: 1
+```
+
+* "**PJSIP/201-000001**" - Channel for forwarding
+* "**internal-transfer**" - For all redirects, use only this context
+* "**203**" - destination number
+* The channel that was in bridge with **PJSIP/201-000001** will be completed
+{% endtab %}
+{% endtabs %}
+
+## Attended transfer
+
+Call forwarding with consultation
+
+{% tabs %}
+{% tab title="Telnet (AMI)" %}
+```
+Action: Atxfer
+Channel: PJSIP/201-000001
+Context: internal-transfer
+Exten: 203
+Priority: 1
+```
+
+* "**PJSIP/201-000001**" - The channel that transfers the call it will be connected to the number 203 for consultation
+* "**internal-transfer**" - For all redirects, use only this context
+* "**203**" - destination number
+* When the **PJSIP/201-000001** channel is completed, the bridge channel will be connected to 203
+{% endtab %}
+{% endtabs %}
