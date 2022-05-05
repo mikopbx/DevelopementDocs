@@ -28,6 +28,7 @@
 * [API](api/README.md)
   * [REST API](api/rest-api.md)
   * [AMI / AJAM](api/ami-ajam.md)
+  * [AGI](api/agi.md)
 * [Core(empty)](core.md)
 
 ## Marketplace
