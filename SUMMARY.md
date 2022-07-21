@@ -19,6 +19,7 @@
   * [Debug PHP-AGI](module-developement/debuging/debug-php-agi.md)
   * [Debug PHP Worker](module-developement/debuging/debug-php-worker.md)
   * [Debug PHP Script](module-developement/debuging/debug-php-script.md)
+  * [Debugging behind NAT](module-developement/debuging/debugging-behind-nat.md)
 
 ## Internal structure
 
