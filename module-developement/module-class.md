@@ -7,7 +7,7 @@ description: >-
 # Module main class
 
 On the template repository, you can find an example in the file ModuleTemplate/Lib/**TemplateConf.php**\
-****You can use it for your project according to your preferences. The name of this class should be consist of a module unique identifier and ends with the **Conf** word.
+You can use it for your project according to your preferences. The name of this class should be consist of a module unique identifier and ends with the **Conf** word.
 
 Good examples:
 
@@ -702,5 +702,317 @@ public function createNginxLocations(): string
             content_by_lua_file {$luaScriptPath};
             keepalive_timeout 0;
 		     }";
+}
+```
+
+## WebUI - manipulations
+
+### Assets
+
+onAfterAssetsPrepared
+
+Adds assets to the assets manager after it has been prepared.
+
+Example:
+
+<pre class="language-php"><code class="lang-php">/**
+ * Modifies the system assets.
+ *
+ * @param Manager $assets The assets manager for additional modifications from module.
+ *
+ * @return void
+ */
+public function onAfterAssetsPrepared(\Phalcon\Assets\Manager $assetsManager):void
+{
+<strong>    $assetsManager->collection('footerJS')
+</strong><strong>        ->addJs("js/cache/{$this->moduleUniqueId}/module-ui-index.js", true);
+</strong>    $assetsManager->collection('headerCSS')
+        ->addCss("css/cache/{$this->moduleUniqueId}/module-ui-index.css", true);
+}
+</code></pre>
+
+### ACL
+
+#### authenticateUser
+
+Authenticates a user over an external module.
+
+Example:
+
+```php
+/**
+* Authenticates a user over an external module.
+*
+* @param string $login The user login entered on the login page.
+* @param string $password The user password entered on the login page.
+*
+* @return array The session data.
+*/
+public function authenticateUser(string $login, string $password): array
+{
+     if ($login==='cdrView' && $password==='cdrView' )
+     {
+         return [
+             'role' => 'cdrView',
+             'homePage'=>'call-detail-records/index'
+         ];
+     }
+     return [];
+}
+```
+
+#### onAfterACLPrepared
+
+Adds roles and permissions to the ACL list after it has been prepared.\
+
+
+Example:
+
+{% code fullWidth="true" %}
+```php
+/**
+ * Adds roles and permissions to the ACL list after it has been prepared.
+ *
+ * @param AclList $aclList The ACL list.
+ *
+ * @return void
+ */
+public function onAfterACLPrepared(AclList $aclList): void
+{
+    // Add role for CDR viewers
+    $aclList->addRole(new AclRole('cdrView', 'Only CDR viewers'));
+    
+    
+    // Add components and permissions for Extensions
+    $aclList->addComponent(new Component('Extensions'), ['index']);
+    // Allow CDR viewers to access Extensions
+    $aclList->allow('cdrView', 'Extensions', ['index']);
+    
+    
+    // Add components and permissions for Call Detail Records
+    $aclList->addComponent(new Component('CallDetailRecords'), ['index', 'get-new-records']);
+    // Allow CDR viewers to access Call Detail Records (all actions)
+    $aclList->allow('cdrView', 'CallDetailRecords', '*');
+    
+    
+    // Add components and permissions for ModuleUsersUiNewMenuItem
+    $aclList->addComponent(new Component('ModuleUsersUiNewMenuItem'), ['index']);
+    // Allow CDR viewers to access ModuleUsersUiNewMenuItem
+    $aclList->allow('cdrView','ModuleUsersUiNewMenuItem',['index']);
+    
+    
+    // Add components and permissions for /pbxcore/api/sip
+    $aclList->addComponent(new Component('/pbxcore/api/sip'), ['getPeersStatuses']); 
+    // Allow CDR viewers to access /pbxcore/api/sip with getPeersStatuses action
+    $aclList->allow('cdrView','/pbxcore/api/sip',['getPeersStatuses']);
+    
+    
+    // Add components and permissions for /pbxcore/api/advices
+    $aclList->addComponent(new Component('/pbxcore/api/advices'), ['getList']);
+    // Allow CDR viewers to access /pbxcore/api/advices with getList action
+    $aclList->allow('cdrView','/pbxcore/api/advices',['getList']);
+
+}
+```
+{% endcode %}
+
+### Routes
+
+#### onAfterExecuteRoute
+
+Example:
+
+{% code fullWidth="true" %}
+```php
+/**
+ * Executes after a route has been executed by the controller.
+ *
+ * @param Controller $controller The controller instance.
+ *
+ * @return void
+ */
+public function onAfterExecuteRoute(Controller $controller): void
+{
+    // Check if the controller is an instance of ExtensionsController
+    if (is_a($controller, ExtensionsController::class)) {
+        // Intercept the form submission of Extensions with fields mod_usrgr_select_group and user_id
+        $userGroup = $controller->request->getPost('mod_usrgr_select_group');
+        $userId = $controller->request->getPost('user_id');
+
+        // Check if the user group field is not empty
+        if (!empty($userGroup)) {
+            $parameters = [
+                'conditions' => 'user_id = :user_id:',
+                'bind' => [
+                    'user_id' => $userId,
+                ]
+            ];
+
+            // Find the existing group membership based on user ID
+            $curUserGroup = GroupMembers::findFirst($parameters);
+
+            // Update or create the group membership
+            if ($curUserGroup !== null) {
+                // Update the group ID with the selected user group
+                $curUserGroup->group_id = $userGroup;
+            } else {
+                // Create a new group membership
+                $curUserGroup = new GroupMembers();
+                $curUserGroup->user_id = $userId;
+                $curUserGroup->group_id = $userGroup;
+            }
+
+            // Save the changes to the database
+            $curUserGroup->save();
+        }
+    }
+}
+```
+{% endcode %}
+
+### Volt
+
+#### onVoltBlockCompile
+
+The function compiles a Volt block and provides the file path of the compiled template. All available blocks can be found in the src/AdminCabinet/Views folder. For example, in the Asterisk manager modify form, there is a block called **MainFields**, which is represented in the Volt file using the following syntax:
+
+```twig
+{{ partial("PbxExtensionModules/hookVoltBlock",
+                ['arrayOfPartials':hookVoltBlock('MainFields')]) 
+```
+
+Example:
+
+{% code fullWidth="true" %}
+```php
+/**
+ * Compiles a Volt block and returns the compiled template file path.
+ *
+ * @param string $controller The name of the controller.
+ * @param string $blockName The name of the block.
+ * @param View $view The View instance.
+ *
+ * @return string The compiled template file path.
+ */
+public function onVoltBlockCompile(string $controller, string $blockName, View $view): string
+{
+    $result = '';
+
+    // Combine the controller and block name to create a unique case identifier
+    $caseIdentifier = "$controller:$blockName";
+
+    // Check the combined case identifier to determine the template file path
+    switch ($caseIdentifier) {
+        case 'AsteriskManagers:MainFields':
+            // Add fields to the main tab on the AsteriskManager edit page
+            $result = "{$this->moduleDir}/App/Views/AsteriskManagers/mainfields";
+            break;
+        case 'Extensions:GeneralTabFields':
+            // Add fields to the general tab in the advanced settings section on the Extension edit page
+            $result = "{$this->moduleDir}/App/Views/Extensions/generaltabfields";
+            break;
+        case 'Extensions:TabularMenu':
+            // Add an additional tab to the Extension edit page
+            $result = "{$this->moduleDir}/App/Views/Extensions/tabularmenu";
+            break;
+        case 'Extensions:AdditionalTab':
+            // Add content for an additional tab on the Extension edit page
+            $result = "{$this->moduleDir}/App/Views/Extensions/additionaltab";
+            break;
+        default:
+            // No specific template file path for other case identifiers
+    }
+
+    return $result;
+}
+```
+{% endcode %}
+
+
+
+### Forms
+
+#### onBeforeFormInitialize
+
+Initializes the form before it is rendered. It useful to add an extra form fields before it compile.
+
+Example:
+
+```php
+/**
+ * Initializes the form before it is rendered.
+ *
+ * @param Form $form The form object.
+ * @param mixed $entity The entity associated with the form.
+ * @param mixed $options Additional options for the form initialization.
+ *
+ * @return void
+ */
+public function onBeforeFormInitialize(Form $form, $entity, $options): void
+{
+    // Check if the form is an instance of ExtensionEditForm
+    if (is_a($form, ExtensionEditForm::class)) {
+        // Define an array of DTMF types with their corresponding translations
+        $arrDTMFType = [
+            'auto' => $this->translation->_('auto'),
+            'inband' => $this->translation->_('inband'),
+            'info' => $this->translation->_('info'),
+            'rfc4733' => $this->translation->_('rfc4733'),
+            'auto_info' => $this->translation->_('auto_info'),
+        ];
+
+        // Create a Select element for the 'module_dtmfmode' field
+        $dtmfmode = new Select(
+            'module_dtmfmode',
+            $arrDTMFType,
+            [
+                'using' => [
+                    'id',
+                    'name',
+                ],
+                'useEmpty' => false,
+                'value' => 'auto',
+                'class' => 'ui selection dropdown',
+            ]
+        );
+
+        // Add the DTMF mode field to the form
+        $form->add($dtmfmode);
+    }
+}
+```
+
+### Sidebar menu
+
+#### onBeforeHeaderMenuShow
+
+Modifies the sidebar menu items before it is shown.
+
+Example:
+
+```php
+/**
+ * Modifies the sidebar menu items before it is shown.
+ *
+ * @param array $menuItems The menu items for modifications.
+ * 
+ * @return void
+ */
+public function onBeforeHeaderMenuShow(array &$menuItems):void
+{
+     // Add Module Users UI Admin menu item
+    $menuItems['ModuleUsersUIAdmin']=[
+        'caption'=>'module_usersUiMainMenuItem',
+        'iconclass'=>'',
+        'submenu'=>[
+            '/module-users-ui/access-groups'=>[
+                'caption' => 'module_usersUiAccessGroups',
+                'iconclass' => 'gear',
+                'action' => 'index',
+                'param' => '',
+                'style' => '',
+            ],
+        ]
+    ];
 }
 ```
