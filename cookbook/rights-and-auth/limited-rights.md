@@ -1,0 +1,2 @@
+# Limited rights
+

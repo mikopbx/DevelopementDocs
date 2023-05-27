@@ -35,3 +35,17 @@
 ## Marketplace
 
 * [Licensing (empty)](marketplace/licensing.md)
+
+## Cookbook
+
+* [Forms](cookbook/forms/README.md)
+  * [Create module form](cookbook/forms/create-module-form.md)
+  * [Create datatable](cookbook/forms/create-datatable.md)
+  * [Add field into existing form](cookbook/forms/add-field-into-existing-form.md)
+* [Asterisk](cookbook/asterisk/README.md)
+  * [Hook on incoming call](cookbook/asterisk/hook-on-incoming-call.md)
+  * [Interact with AMI](cookbook/asterisk/interact-with-ami.md)
+  * [Modify extensions.conf](cookbook/asterisk/modify-extensions.conf.md)
+* [Rights and auth](cookbook/rights-and-auth/README.md)
+  * [External authentication](cookbook/rights-and-auth/external-authentication.md)
+  * [Limited rights](cookbook/rights-and-auth/limited-rights.md)
