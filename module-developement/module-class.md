@@ -126,7 +126,7 @@ Example:
 public function extensionGenInternalTransfer(): string;
 ```
 
-####
+
 
 #### extensionGenInternalUsersPreDial
 
@@ -138,8 +138,6 @@ Example:
 public function extensionGenInternalUsersPreDial(): string;
 ```
 
-####
-
 #### extensionGenHints
 
 Prepares additional hints for \[internal-hints] context section in the extensions.conf file
@@ -148,6 +146,27 @@ Example:
 
 ```php
 public function extensionGenHints(): string;
+```
+
+#### generateIncomingRoutBeforeDialPreSystem
+
+Prepares additional parameters for each incoming context for each incoming route before dial in the extensions.conf file
+
+Example:
+
+```php
+/**
+* Prepares additional parameters for each incoming context for each 
+* incoming route before dial in the extensions.conf file
+*
+* @param string $rout_number
+*
+* @return string
+*/
+public function generateIncomingRoutBeforeDialPreSystem(string $rout_number): string
+{
+   return '';
+}
 ```
 
 #### generateIncomingRoutBeforeDial
@@ -171,6 +190,27 @@ public function generateIncomingRoutBeforeDial(string $rout_number): string
     $conf = 'same => n,UserEvent(Interception,CALLERID: ${CALLERID(num)},chan: ${CHANNEL},FROM_DID: ${FROM_DID})';    
     return $conf;
 }
+```
+
+#### generateIncomingRoutBeforeDialSystem
+
+Prepares additional parameters for each incoming context for each incoming route before dial in the extensions.conf file
+
+Example:
+
+```php
+/**
+  * Prepares additional parameters for each incoming context for each 
+  * incoming route before dial in the extensions.conf file
+  * 
+  * @param string $rout_number
+  *
+  * @return string
+  */
+ public function generateIncomingRoutBeforeDialSystem(string $rout_number): string
+ {
+     return '';
+ }
 ```
 
 #### generateIncomingRoutAfterDialContext
@@ -363,7 +403,7 @@ Example:
 public function getFeatureMap(): string;
 ```
 
-### Other
+## Other
 
 ```php
 /**
@@ -385,6 +425,38 @@ public function getMessages(): array;
  * @return array
  */
 public function getDependenceModels(): array;
+
+
+```
+
+#### getMethodPriority
+
+This method allows overriding the execution priority of a method when called through hookModulesMethod. By defining this method in the Conf class of a module, you can flexibly control the execution priority of HOOK methods. This provides the ability to specify a high priority for a method that generates CRON tasks in an external module, and a low priority for a method that generates peers for pjsip.conf. By changing the priority, you can control the order in which module methods are applied.
+
+Example:
+
+```php
+/**
+ * Allows overriding the execution priority of a method when called 
+ * through hookModulesMethod.
+ *
+ * @param string $methodName The name of the method.
+ * @return int The priority value assigned to the method.
+ */
+public function getMethodPriority(string $methodName = ''): int
+{
+    switch ($methodName) {
+        case SystemConfigInterface::CREATE_CRON_TASKS:
+            $result = 200; // Set a high priority for the method "CREATE_CRON_TASKS"
+            break;
+        case AsteriskConfigInterface::GENERATE_PEERS_PJ:
+            $result = 50000; // Set a low priority for the method "GENERATE_PEERS_PJ"
+            break;
+        default:
+            $result = $this->priority;
+    }
+    return $result;
+}}
 ```
 
 ## REST API Core generators
