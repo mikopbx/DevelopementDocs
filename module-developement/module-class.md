@@ -773,7 +773,7 @@ public function createNginxLocations(): string
             default_type 'text/plain';
             content_by_lua_file {$luaScriptPath};
             keepalive_timeout 0;
-		     }";
+         }";
 }
 ```
 
@@ -790,7 +790,7 @@ Example:
 <pre class="language-php"><code class="lang-php">/**
  * Modifies the system assets.
  *
- * @param Manager $assets The assets manager for additional modifications from module.
+ * @param Manager $assets The assets manager for additional modifications from module
  *
  * @return void
  */
@@ -840,7 +840,7 @@ Adds roles and permissions to the ACL list after it has been prepared.\
 
 Example:
 
-{% code fullWidth="true" %}
+{% code fullWidth="false" %}
 ```php
 /**
  * Adds roles and permissions to the ACL list after it has been prepared.
@@ -862,7 +862,8 @@ public function onAfterACLPrepared(AclList $aclList): void
     
     
     // Add components and permissions for Call Detail Records
-    $aclList->addComponent(new Component('CallDetailRecords'), ['index', 'get-new-records']);
+    $aclList->addComponent(new Component('CallDetailRecords'), 
+        ['index', 'get-new-records']);
     // Allow CDR viewers to access Call Detail Records (all actions)
     $aclList->allow('cdrView', 'CallDetailRecords', '*');
     
@@ -894,7 +895,7 @@ public function onAfterACLPrepared(AclList $aclList): void
 
 Example:
 
-{% code fullWidth="true" %}
+{% code fullWidth="false" %}
 ```php
 /**
  * Executes after a route has been executed by the controller.
@@ -907,7 +908,8 @@ public function onAfterExecuteRoute(Controller $controller): void
 {
     // Check if the controller is an instance of ExtensionsController
     if (is_a($controller, ExtensionsController::class)) {
-        // Intercept the form submission of Extensions with fields mod_usrgr_select_group and user_id
+        // Intercept the form submission of Extensions with 
+        // fields mod_usrgr_select_group and user_id
         $userGroup = $controller->request->getPost('mod_usrgr_select_group');
         $userId = $controller->request->getPost('user_id');
 
@@ -955,7 +957,7 @@ The function compiles a Volt block and provides the file path of the compiled te
 
 Example:
 
-{% code fullWidth="true" %}
+{% code fullWidth="false" %}
 ```php
 /**
  * Compiles a Volt block and returns the compiled template file path.
@@ -966,7 +968,8 @@ Example:
  *
  * @return string The compiled template file path.
  */
-public function onVoltBlockCompile(string $controller, string $blockName, View $view): string
+public function onVoltBlockCompile(
+        string $controller, string $blockName, View $view): string
 {
     $result = '';
 
@@ -980,7 +983,8 @@ public function onVoltBlockCompile(string $controller, string $blockName, View $
             $result = "{$this->moduleDir}/App/Views/AsteriskManagers/mainfields";
             break;
         case 'Extensions:GeneralTabFields':
-            // Add fields to the general tab in the advanced settings section on the Extension edit page
+            // Add fields to the general tab in the advanced settings section 
+            // on the Extension edit page
             $result = "{$this->moduleDir}/App/Views/Extensions/generaltabfields";
             break;
         case 'Extensions:TabularMenu':
