@@ -28,7 +28,7 @@ Go to "**Settings**" - "**Preferences**" - "**PHP**" - "**Debug**" - "**DBGp Pro
 
 #### Main catalogs MikoPBX
 
-* **`/usr/www`**` ``` - [Core](https://github.com/mikopbx/Core) files
+* **`/usr/www`** - [Core](https://github.com/mikopbx/Core) files
 * **`/storage/usbdisk1/mikopbx/custom_modules`** - directory for storing modules
 * **`/storage/usbdisk1/mikopbx/custom_modules/ModulePhoneBook`** the [**PhoneBook**](https://github.com/mikopbx/ModulePhoneBook) module will be stored in this directory&#x20;
 

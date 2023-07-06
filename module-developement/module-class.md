@@ -788,18 +788,24 @@ Adds assets to the assets manager after it has been prepared.
 Example:
 
 <pre class="language-php"><code class="lang-php">/**
- * Modifies the system assets.
- *
- * @param Manager $assets The assets manager for additional modifications from module
- *
- * @return void
- */
-public function onAfterAssetsPrepared(\Phalcon\Assets\Manager $assetsManager):void
+* Modifies the system assets on the fly.
+<strong>* 
+</strong>* @param Phalcon\Assets\Manager $assets The assets manager 
+*        for additional modifications from module.
+* @param Phalcon\Mvc\Dispatcher $dispatcher The dispatcher instance.
+*
+* @return void
+*/
+public function onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher):void
 {
-<strong>    $assetsManager->collection('footerJS')
-</strong><strong>        ->addJs("js/cache/{$this->moduleUniqueId}/module-ui-index.js", true);
-</strong>    $assetsManager->collection('headerCSS')
-        ->addCss("css/cache/{$this->moduleUniqueId}/module-ui-index.css", true);
+   $currentController = $dispatcher->getControllerName();
+   $currentAction = $dispatcher->getActionName();
+   if ($currentController==='Extensions' and $currentAction==='modify') {
+     $assets->collection(AssetProvider::FOOTER_JS)
+            ->addJs("js/cache/{$this->moduleUniqueId}/extensions-modify.js", true);
+      $assets->collection(AssetProvider::HEADER_CSS)
+            ->addCss("css/cache/{$this->moduleUniqueId}/extensions-modify.css", true);       
+   }
 }
 </code></pre>
 
