@@ -148,6 +148,16 @@ Example:
 public function extensionGenHints(): string;
 ```
 
+#### extensionGenCreateChannelDialplan
+
+Adds priorities for \[dial\_create\_chan] context section in the extensions.conf file
+
+Example:
+
+```php
+public function extensionGenCreateChannelDialplan(): string;
+```
+
 #### generateIncomingRoutBeforeDialPreSystem
 
 Prepares additional parameters for each incoming context for each incoming route before dial in the extensions.conf file
