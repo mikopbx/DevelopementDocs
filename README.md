@@ -1,43 +1,111 @@
 ---
 description: >-
-  This guide helps you to create new module for MikoPBX server and discover some
-  internal structures
+  This guide helps you to create new modules for MikoPBX and understand its
+  internal structure.
 ---
 
 # MikoPBX development guide
 
-## What is it?
+## What is MikoPBX?
 
-MikoPBX is an open-source GUI (graphical user interface) that controls and manages Asterisk (PBX). MikoPBX is licensed under GPL. MikoPBX is an entirely modular GUI for Asterisk written in PHP7 and Javascript. Meaning you can simply write any module you can think of and distribute it free of cost to your clients so that they can take advantage of beneficial features in [Asterisk](http://www.asterisk.org) The released firmware consists Linux operation system and all needing services like Asterisk, Nginx, PHP-FPM, iptables etc.
+MikoPBX is a free, open-source phone system for small and medium business. Under the hood it runs the [Asterisk](https://www.asterisk.org) PBX engine, wrapped in a modern web administration interface built on the [Phalcon](https://phalcon.io) MVC framework. The whole product ships as a turnkey Linux firmware that already bundles every service a phone system needs — Asterisk, Nginx, PHP-FPM, the firewall (iptables) and fail2ban, a key-value store and the background workers that glue them together.
+
+MikoPBX is **entirely modular**. The admin GUI, the dialplan generation, the REST API surface and the background workers can all be extended by third-party modules without patching the Core. That means you can build virtually any feature you can imagine, ship it to your customers through the MIKO marketplace (or distribute it for free), and have it install cleanly on top of any compatible MikoPBX firmware.
+
+### The architecture in one picture
+
+| Layer | Technology | What lives here |
+| --- | --- | --- |
+| Telephony engine | Asterisk | Dialplan, PJSIP/SIP peers and providers, AMI, AGI |
+| Admin interface | Phalcon MVC (controllers, Volt views, forms) + ES6+ JavaScript | The web UI you and your module extend |
+| Persistent data | SQLite (one database per module) | Module settings, models, relationships |
+| Runtime / cache / queues | Redis and background PHP workers | Inter-process state, event queues, scheduled jobs |
+
+A module plugs into all four layers through a small set of well-defined classes — a configuration class that hooks into Core, an installer that provisions your database, Phalcon models that describe your tables, and (optionally) controllers, REST API actions, workers and AGI scripts.
+
+## Platform target and version baseline
+
+There are two version numbers to keep straight, and they come from two different sources. Treat them accordingly.
+
+{% hint style="info" %}
+**Core runtime platform — authoritative.** `Core/composer.json` is the source of truth for what the firmware actually runs. The current Core requires:
+
+* `"php": "^8.4"`
+* `"ext-phalcon": "^5.9.3"`
+
+It also pins the Composer platform to PHP `8.4` (see the `config.platform` block). Your code runs inside this runtime, so it must be valid on PHP 8.x and Phalcon 5.x.
+{% endhint %}
+
+{% hint style="success" %}
+**Module development baseline — recommended for new modules.** The official `mikopbx-module` skill (`Core/.claude/skills/mikopbx-module/SKILL.md`) targets the same platform for newly generated modules:
+
+* PHP **8.4**
+* Phalcon **5.9.3**
+* `min_pbx_version` **2025.1.1**
+* **No** legacy-compatibility shims (no `MikoPBXVersion.php`)
+
+In practice: write PHP 8.4-clean code, target Phalcon 5.x APIs, and set `min_pbx_version` to `2025.1.1` in your `module.json` so the firmware refuses to install your module on incompatible releases.
+{% endhint %}
+
+{% hint style="warning" %}
+The shipped template at `Extensions/ModuleTemplate/module.json` still declares `"min_pbx_version": "2023.2.150"`. That value is a placeholder from an older template — for a **new** module raise it to `2025.1.1` to match the current development baseline above.
+{% endhint %}
+
+This documentation is written strictly for that baseline. You will not find Phalcon 4 APIs, PHP 7 syntax, or `MikoPBXVersion.php`-style compatibility code anywhere in this guide. When the framework matters, the relevant Phalcon 5.x reference is linked inline (for example, the model layer is covered by the [Phalcon 5 ORM documentation](https://docs.phalcon.io/5.0/en/db-models)).
 
 ## How to start module development
 
-Firstly you should prepare your development environment according to[ the ](prepare-ide-tools/)[instructions](module-developement/template-module-structure.md). You will prepare your IDE, install some dependency and special tools to make your workspace well organized for the right developing process.
+The path from zero to an installable module is short:
 
-Next, you have to clone the template repository and rename folders, files and classes with a special script according to [these instructions](module-developement/template-module-structure.md). Finally, you will have the new module with the right folder and classes structure.&#x20;
+1. **Prepare your tools.** Set up your IDE, PHP, and the helper utilities used to scaffold and debug a module. See [Prepare IDE and system tools](prepare-ide-tools/README.md) for Windows, Linux and macOS instructions.
+2. **Scaffold from the template.** Clone the module template and rename its folders, files and classes with the provided script. See [How to start](module-developement/template-module-structure.md). The reference template lives in the repo at `Extensions/ModuleTemplate/`.
+3. **Install it on a MikoPBX instance** and iterate. Your skeleton module is installable immediately; you then layer real behavior on top.
 
-It is ready to install on the MikoPBX and start the developing process.
+Throughout this guide we follow a single running example — a fictional module named **`ModuleBlackList`** that blocks unwanted callers. Its configuration class is `BlackListConf`, its main class is `BlackListMain`, its model is `BlackListNumbers` (backed by the SQLite table `m_BlackListNumbers`), and its front-end script is `module-black-list.js`. Every pattern in the guide is illustrated with this module and then anchored to a **real, working example module** in the repository so you can read production-quality source. The canonical examples are:
 
-## Get into the mikopbx internal structure
+* Web UI form: `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`
+* REST API (current v3 style): `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/`
+* AMI background worker: `Extensions/EXAMPLES/AMI/ModuleExampleAmi/`
 
-Before starting development you have to deep into the MikoPBX internal structure.  We provided some details about internal stricture, data models, models relationships in [the core description](core.md).&#x20;
+{% hint style="info" %}
+When in doubt about a pattern, read the actual source of these example modules — they are the authoritative reference, kept in sync with the current Core.
+{% endhint %}
 
-Also, we described [the admin interface structure](admin-interface.md), you can use int as a good example of how to develop a module interface. There is a lot of JavaScript code and PHP classes that organizes an user interaction.&#x20;
+## What a module can do
 
-Some actions require root access to system services. You can interact with them by the [MikoPBX REST API](api/rest-api.md).
+The configuration and main classes give your module deep, supported access into the Core. From them you can:
 
-## Modify your module
+* Generate Asterisk config fragments and add your own contexts to `extensions.conf`.
+* Override PJSIP parameters for peers and providers.
+* Register Asterisk Manager (AMI) accounts.
+* Add firewall rules and fail2ban jail configuration.
+* Schedule cron tasks and run long-lived PHP workers.
+* Expose REST API routes and add pages to the admin interface.
 
-We advise starting development from a proper data structure. Every module has its own database. You should describe the structure of tables on models classes according to the Phalcon models [documentations](https://docs.phalcon.io/4.0/en/db-models). Describe every column with its type using metadata annotations and organize data relationships between other tables.
+Start with a clean **data model** (your SQLite tables described as Phalcon models), then write the **installer** that provisions that database at install time, then wire behavior through the **module main class**. These are covered step by step in the Module development chapter linked below.
 
-Next, you should change the installer class. It helps to prepare a real database with some data within the installation process. Read our instructions about it [here](module-developement/module-installer.md).&#x20;
+## Orientation map
 
-The main module class helps you to interact with the MikoPBX classes. You can modify asterisk config files, add your own contexts to the extension.conf file, override any  PJSIP parameters for peers and providers, add manager API accounts, add extra rules to iptables and fail2ban service's configuration files, add extra cron tasks, organize new REST API routes, make PHP workers. Start from [the description](module-developement/module-class.md) of the main module class.
+This guide is organized into four parts. Pick the one that matches what you are doing:
 
-Develop and [debug](module-developement/debuging/) your module. Ask for help from our community. You are welcome to the big family!
+### 1. Module development
 
-## Make money or provide it for free
+The end-to-end build flow: scaffolding from the template, designing your [data model](module-developement/data-model.md), writing the [installer class](module-developement/module-installer.md), the [module main class](module-developement/module-class.md), the [module interface](module-developement/module-interface-empty.md), and [translations](module-developement/translations.md). Start here: [How to start](module-developement/template-module-structure.md).
 
-When you finished your module you can add it to the MIKO marketplace. We will spread it around all MikoPBX's customers.&#x20;
+### 2. Internal structure
 
-If you want to earn some many we can add some licensing features to your module and raise money together. Read the licensing articles [here](marketplace/licensing.md).
+How MikoPBX is built underneath your module — the [Core](core.md), the admin interface, and the public integration surfaces: the [REST API](api/rest-api.md), [AMI / AJAM](api/ami-ajam.md), and [AGI](api/agi.md). Read this when you need to understand *why* a hook exists or *where* your data flows.
+
+### 3. Cookbook
+
+Task-focused recipes you can copy: building [forms](cookbook/forms/README.md) and [datatables](cookbook/forms/create-datatable.md), [hooking on incoming calls](cookbook/asterisk/hook-on-incoming-call.md), [interacting with AMI](cookbook/asterisk/interact-with-ami.md), [modifying `extensions.conf`](cookbook/asterisk/modify-extensions.conf.md), and handling [rights and authentication](cookbook/rights-and-auth/README.md).
+
+### 4. AI-assisted development
+
+MikoPBX ships an official module-generation skill (`Core/.claude/skills/mikopbx-module/SKILL.md`) that scaffolds and augments modules from a natural-language description, following the exact conventions in this guide. See the [AI-assisted development](ai-assisted-development/README.md) chapter for how to drive it.
+
+## Make money or share it for free
+
+When your module is ready you can publish it to the MIKO marketplace, where it reaches every MikoPBX customer. If you want to monetize it, MikoPBX provides licensing features so you can sell paid modules. See the [Licensing](marketplace/licensing.md) articles.
+
+Develop, [debug](module-developement/debuging/README.md), and ship — and ask our community for help along the way. Welcome to the family.

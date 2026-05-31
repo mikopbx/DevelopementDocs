@@ -9,11 +9,18 @@
 ## Modules developement <a href="#module-developement" id="module-developement"></a>
 
 * [How to start](module-developement/template-module-structure.md)
+* [Module anatomy](module-developement/module-anatomy.md)
+* [module.json reference](module-developement/module-json.md)
 * [Data model](module-developement/data-model.md)
 * [Module installer class](module-developement/module-installer.md)
 * [Module main class](module-developement/module-class.md)
+* [Hooks reference](module-developement/hooks-reference.md)
+* [Recipes](module-developement/recipes.md)
+* [Workers and background processes](module-developement/workers.md)
 * [Module interface](module-developement/module-interface-empty.md)
-* [Translations(empty)](module-developement/translations.md)
+* [REST API in modules](module-developement/rest-api-in-modules.md)
+* [Translations](module-developement/translations.md)
+* [Best practices](module-developement/best-practices.md)
 * [Debuging](module-developement/debuging/README.md)
   * [Configuring IDE](module-developement/debuging/configuring-ide.md)
   * [Debug PHP-AGI](module-developement/debuging/debug-php-agi.md)
@@ -25,16 +32,16 @@
 
 ***
 
-* [Admin interface(empty)](admin-interface.md)
+* [Admin interface](admin-interface.md)
 * [API](api/README.md)
   * [REST API](api/rest-api.md)
   * [AMI / AJAM](api/ami-ajam.md)
   * [AGI](api/agi.md)
-* [Core(empty)](core.md)
+* [Core](core.md)
 
 ## Marketplace
 
-* [Licensing (empty)](marketplace/licensing.md)
+* [Licensing](marketplace/licensing.md)
 
 ## Cookbook
 
@@ -49,3 +56,9 @@
 * [Rights and auth](cookbook/rights-and-auth/README.md)
   * [External authentication](cookbook/rights-and-auth/external-authentication.md)
   * [Limited rights](cookbook/rights-and-auth/limited-rights.md)
+
+## AI-assisted development
+
+* [Overview](ai-assisted-development/README.md)
+* [Using the skill](ai-assisted-development/using-the-skill.md)
+* [What it generates](ai-assisted-development/what-it-generates.md)
