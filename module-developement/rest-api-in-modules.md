@@ -506,15 +506,19 @@ Whether *required-field* validation applies on a given verb is decided by your
 own validation rules, not by the framework; design them per operation.
 {% endhint %}
 
-### The reference SaveRecordAction is a teaching stub
+### The reference SaveRecordAction is a full, DB-backed example
 
 The example module's
 `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/Lib/RestAPI/Tasks/Actions/SaveRecordAction.php`
-walks through all seven phases as comments but **does not persist anything**: it
-generates a fake id with `rand(100, 999)` and echoes the input back. It is there
-to show the *shape*, not to be copied verbatim. A production action loads/creates
-your model (e.g. `BlackListNumbers` mapping table `m_BlackListNumbers`), saves it
-inside `executeInTransaction()`, and returns the persisted record.
+implements all seven phases for real: it sanitizes and validates the input,
+generates a public `uniqid` with `Tasks::generateUniqueID('TASK')`, and persists
+the `Tasks` model inside `executeInTransaction()`. Its sibling actions
+(`GetListAction`, `GetRecordAction`, `DeleteRecordAction`) are DB-backed too, so
+the module is a consistent end-to-end CRUD you can install and exercise (create a
+task, list it, fetch it by id or `uniqid`, delete it). Your own module follows the
+same shape — load/create your model (e.g. `BlackListNumbers` mapping table
+`m_BlackListNumbers`), save it inside `executeInTransaction()`, and return the
+persisted record.
 
 {% code title="Extensions/ModuleBlackList/Lib/RestAPI/Numbers/Actions/SaveRecordAction.php" %}
 ```php

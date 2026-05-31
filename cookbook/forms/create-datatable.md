@@ -72,21 +72,25 @@ this reason.
 
 ## Step 1 — the data source: GetListAction
 
-The example `GetListAction` in the reference module returns hardcoded rows and
-**ignores pagination** — it exists to show the *shape*:
+The example `GetListAction` in the reference module queries the database for
+real, but stays deliberately simple — an optional status filter and ordering, but
+**no pagination**:
 
 {% code title="Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/Lib/RestAPI/Tasks/Actions/GetListAction.php" %}
 ```php
 public static function main(array $data): PBXApiResult
 {
     $result = new PBXApiResult();
+
+    // Bound parameters (:status:) — never string concatenation.
+    $parameters = ['order' => 'priority DESC, id DESC'];
+    if (!empty($data['status'])) {
+        $parameters['conditions'] = 'status = :status:';
+        $parameters['bind']       = ['status' => $data['status']];
+    }
+
+    $result->data    = Tasks::find($parameters)->toArray();
     $result->success = true;
-    // Example data - real implementation would query database:
-    // $tasks = Tasks::find()->toArray();
-    $result->data = [
-        ['id' => 1, 'title' => 'Example Task 1', 'status' => 'pending', 'priority' => 5],
-        ['id' => 2, 'title' => 'Example Task 2', 'status' => 'in_progress', 'priority' => 8],
-    ];
     return $result;
 }
 ```
