@@ -18,7 +18,7 @@ page for the surface you need.
 {% hint style="info" %}
 Throughout the developer docs we thread a single fictional module, **ModuleBlackList**
 (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`,
-table `m_BlackListNumbers`, frontend `module-black-list.js`), so each pattern has a
+table `m_BlackListNumbers`, frontend `module-black-list-index.js`), so each pattern has a
 concrete home. For every pattern we also point to a **real, working example module**
 under `Extensions/EXAMPLES/`.
 {% endhint %}
@@ -63,12 +63,17 @@ script, a mobile app, another server).
   ```php
   class PBXApiResult {
       public bool $success = false;
-      public array $data = [];
-      public array $messages = [];   // ['error' => [...], 'warning' => [...]]
-      public ?int $httpCode = null;  // 200, 201, 400, 422, 409, 500
+      public array $data;             // initialised to [] in the constructor
+      public array $messages;         // ['error' => [...], 'warning' => [...]]
+      public string $processor;       // set by the Processor that ran
+      public string $function;        // the action name
+      public ?int $httpCode = null;   // 200, 201, 400, 422, 409, 500
       public ?array $pagination = null;
+      public string $reload = '';
   }
   ```
+
+  `getResult()` also injects `pid` (the worker PID) into the wire body.
 
 {% hint style="success" %}
 **Choose REST v3 when** you are building a new module endpoint, exposing CRUD on a
@@ -109,8 +114,9 @@ up a channel, redirect, add/remove a queue member).
   $am->QueueAdd($queue, $interface, $penalty);
   $peers = $am->getPjSipPeers();   // [['id'=>'201','state'=>'OK', ...]]
 
-  // Event-driven
-  $am->addEventHandler('Hangup', $callable);
+  // Event-driven — the callback must be an array callable [$object, 'method'],
+  // never a closure: addEventHandler() is typed array|string.
+  $am->addEventHandler('Hangup', [$this, 'onHangup']);
   $am->waitResponse(true);
   ```
 

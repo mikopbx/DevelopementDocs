@@ -217,7 +217,7 @@ public function processEvent(array $parameters): mixed;
 ```
 {% endcode %}
 
-* **`addEventHandler($event, $callback)`** registers a handler. `$event` is the lower-cased event name, or `'*'` for a catch-all. The callback receives the parsed event parameters. It returns `false` if a handler for that event is already registered.
+* **`addEventHandler($event, $callback)`** registers a handler. `$event` is lower-cased internally, so `'Hangup'` and `'hangup'` are equivalent; `'*'` is a catch-all. `$callback` must be an **array callable** `[$object, 'method']` (or a plain function-name string) — see the warning below. It returns `false` if a handler for that event is already registered.
 * **`Events(string $eventMask)`** turns the event stream on/off at runtime (`'on'`, `'off'`, or a mask such as `'system,call,log'`).
 * **`UserEvent(string $name, array $headers)`** emits a custom `UserEvent` — the standard way for an AGI script or worker to push a message onto the AMI bus.
 * **`waitUserEvent()`** is a blocking loop tuned for `UserEvent` consumers; it also supports an idle callback (`setOnIdleCallback()`).
@@ -226,23 +226,54 @@ public function processEvent(array $parameters): mixed;
 The method is **`addEventHandler`** (camelCase). There is no `add_event_handler` alias.
 {% endhint %}
 
-A minimal event-listening loop, of the kind a long-running worker uses:
+{% hint style="danger" %}
+**Do not pass a closure to `addEventHandler()`.** The parameter is typed
+`array|string $callback` (`Core/src/Core/Asterisk/AsteriskManager.php:1751`), so
+`addEventHandler('Hangup', fn($p) => …)` fails immediately with a `TypeError` —
+a `Closure` is not an `array` and not a `string`.
+
+Use the array callable `[$object, 'method']`. The string form technically works,
+but it is dispatched differently: `processEvent()` invokes an **array** handler as
+`call_user_func($handler, $parameters)` — one argument — while a **string** handler
+is called as `$handler($eventName, $parameters, $server, $port)` — four arguments.
+So the array form is the only one whose signature matches the
+`function (array $parameters)` shape used throughout these docs and in the example
+modules.
+{% endhint %}
+
+A minimal event-listening loop, of the kind a long-running worker uses. Note that
+the handlers are methods on the worker object, registered as array callables:
 
 ```php
 use MikoPBX\Core\System\Util;
+use MikoPBX\Core\Asterisk\AsteriskManager;
 
-$am = Util::getAstManager('on');
+class BlackListAmiListener
+{
+    protected AsteriskManager $am;
 
-$am->addEventHandler('Newchannel', function (array $parameters): void {
-    // $parameters['Channel'], $parameters['CallerIDNum'], ...
-});
-$am->addEventHandler('Hangup', function (array $parameters): void {
-    // react to call teardown
-});
+    public function run(): void
+    {
+        $this->am = Util::getAstManager('on');
 
-// Block forever, dispatching events to the handlers above.
-while (true) {
-    $am->waitUserEvent();
+        $this->am->addEventHandler('Newchannel', [$this, 'onNewChannel']);
+        $this->am->addEventHandler('Hangup', [$this, 'onHangup']);
+
+        // Block forever, dispatching events to the handlers above.
+        while (true) {
+            $this->am->waitUserEvent();
+        }
+    }
+
+    public function onNewChannel(array $parameters): void
+    {
+        // $parameters['Channel'], $parameters['CallerIDNum'], ...
+    }
+
+    public function onHangup(array $parameters): void
+    {
+        // react to call teardown
+    }
 }
 ```
 

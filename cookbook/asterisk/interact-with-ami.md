@@ -210,12 +210,31 @@ events to the web UI over the EventBus) and
   filter, the monitor concludes the worker is dead and restarts it in a loop.
 * **`waitUserEvent(true)`** blocks reading the socket, runs each event through
   the registered handler, and returns `[]` on timeout — your cue to reconnect.
+  It loops internally (`do { … } while (!$timeout)`) and **returns only when a
+  ping fails**, so it does *not* hand control back once per event. The body of
+  your `while (true)` loop therefore executes only on disconnect. Put per-event
+  work in the handler and periodic work in `setOnIdleCallback()`; anything you
+  place in the outer loop expecting it to run regularly will never run at all
+  on a healthy PBX — and will look fine in testing for exactly that reason.
 
 {% hint style="warning" %}
-`addEventHandler()` registers a handler **only once per event name** — calling
-it again for the same name returns `false` and is ignored. Register handlers in
-`start()` before the loop, not inside it. Use `'userevent'` for user events or
-`'*'` to catch every event type (as `ModuleExampleAmi` does).
+**Three constraints on `addEventHandler(string $event, array|string $callback)`
+(`Core/src/Core/Asterisk/AsteriskManager.php:1751`).**
+
+1. It registers a handler **only once per event name** — the name is lowercased,
+   and if one is already registered the method returns `false` and does nothing.
+   Register handlers in `start()` before the loop, not inside it.
+2. The signature is `array|string` — **a closure is not accepted.** Pass an array
+   callable `[$this, 'callback']` (the form used above) or a plain function-name
+   string. Anything else is silently stored and then fails at dispatch time.
+3. The two forms are **not** invoked the same way. An array callable receives a
+   single argument — the parsed event parameters array. A string callable
+   receives four arguments (event name, parameters, server, port). Use the array
+   form unless you have a reason not to; then your handler signature is
+   `function callback(array $parameters): void`.
+
+Use `'userevent'` for user events or `'*'` to catch every event type (as
+`ModuleExampleAmi` does).
 {% endhint %}
 
 ### Subscribing to native Asterisk events
@@ -364,7 +383,7 @@ your config class. The Core appends its return value to `manager.conf`.
 
 {% code title="Extensions/ModuleBlackList/Lib/BlackListConf.php" %}
 ```php
-use MikoPBX\Core\System\System;
+use MikoPBX\Core\Asterisk\Configs\ManagerConf;
 
 /**
  * Append a [section] to Asterisk's manager.conf.
@@ -393,7 +412,7 @@ public function generateManagerConf(): string
  */
 public function onAfterModuleEnable(): void
 {
-    System::invokeActions(['manager' => 0]);
+    ManagerConf::reload();
 
     $main = new BlackListMain();
     $main->startAllServices();
@@ -404,17 +423,29 @@ public function onAfterModuleEnable(): void
  */
 public function onAfterModuleDisable(): void
 {
-    System::invokeActions(['manager' => 0]);
+    ManagerConf::reload();
 }
 ```
 {% endcode %}
 
 `generateManagerConf()` is a real hook declared in
 `Core/src/Core/Asterisk/Configs/AsteriskConfigInterface.php` and overridden here.
-`System::invokeActions(['manager' => 0])` triggers the Core's manager-reload
-action. The verbatim working version is
-`ExampleAmiConf::generateManagerConf()` /
-`onAfterModuleEnable()` / `onAfterModuleDisable()`.
+`ManagerConf::reload()` (`Core/src/Core/Asterisk/Configs/ManagerConf.php:258-270`)
+regenerates `manager.conf` — which is what invokes your `generateManagerConf()`
+hook again — plus `http.conf`, then issues `module reload manager` and
+`module reload http`. `ExampleAmiConf::generateManagerConf()`
+(`Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiConf.php:269`) is the
+working version of the hook itself.
+
+{% hint style="warning" %}
+Older module code — including `ExampleAmiConf::onAfterModuleEnable()` at line 292
+of that same file — reloads the manager with
+`System::invokeActions(['manager' => 0])`. **Do not copy that part.** The method
+is marked `@deprecated` in `Core/src/Core/System/System.php:61-69` (the docblock
+points at `WorkerModelsEvents::invokeAction()`). Call the specific config class's
+`reload()` instead — `ManagerConf::reload()` here, `ExtensionsConf::reload()` for
+the dialplan. The `PBX` class is deprecated for the same reason.
+{% endhint %}
 
 {% hint style="danger" %}
 `read=all` / `write=all` grants full AMI privileges. Keep `deny=0.0.0.0/0.0.0.0`
@@ -440,7 +471,7 @@ All confirmed against the pinned Core sources.
 | `WorkerBase::makePingTubeName(string $class)` | `Core/src/Core/Workers/WorkerBase.php` | Compute this worker's liveness ping name. |
 | `WorkerBase::replyOnPingRequest(array $parameters)` | `WorkerBase.php` | Answer a monitor ping; returns `true` if handled. |
 | `WorkerSafeScriptsCore::CHECK_BY_AMI` | `WorkerSafeScriptsCore.php` | Monitoring strategy string `'checkWorkerAMI'`. |
-| `System::invokeActions(['manager' => 0])` | `Core/src/Core/System/System.php` | Reload Asterisk `manager.conf`. |
+| `ManagerConf::reload()` | `Core/src/Core/Asterisk/Configs/ManagerConf.php:258` | Regenerate `manager.conf` + `http.conf` and reload both Asterisk modules. |
 | `PbxSettings::AMI_PORT` | `Core/src/Common/Models/PbxSettings.php` | AMI TCP port setting (default `5038`). |
 
 ## See also

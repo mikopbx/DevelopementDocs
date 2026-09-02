@@ -121,7 +121,7 @@ This mirrors the core models exactly. `Sip` calls `$this->setSource('m_Sip')`, `
 
 ## Column conventions
 
-MikoPBX/Phalcon models follow a strict set of conventions. They look unusual compared to plain PHP DTOs, but they are correct and intentional — the linter explicitly exempts them from the "missing type declaration" rule (see anti-pattern #15 in `Core/.claude/skills/mikopbx-module/reference/anti-patterns.md`).
+MikoPBX/Phalcon models follow a strict set of conventions. They look unusual compared to plain PHP DTOs, but they are correct and intentional — the linter explicitly exempts them from the "missing type declaration" rule (see anti-pattern #15 in `skills/mikopbx-module/reference/anti-patterns.md` of [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills)).
 
 ### Primary key: always untyped `public $id`
 
@@ -185,7 +185,7 @@ public ?int $providerId = null;
 `ModelsBase::beforeValidationOnCreate()` reads the annotation `default` values from metadata and applies them to any property still unset on insert (see `Core/src/Common/Models/ModelsBase.php`). So the `default="0"` in the annotation — not just the PHP property default — is what backs a new row.
 
 {% hint style="warning" %}
-**Anti-pattern #7 — phantom fields.** Only properties declared with a `@Column` annotation are real columns. Reading or writing any other property name on a model instance silently returns `null` (or is dropped on save) and causes subtle logic bugs. If you need a new field, add a `@Column` property and re-install the module so the table is regenerated. Never reference a field that is not in the model. See `Core/.claude/skills/mikopbx-module/reference/anti-patterns.md` (#7).
+**Anti-pattern #7 — phantom fields.** Only properties declared with a `@Column` annotation are real columns. Reading or writing any other property name on a model instance silently returns `null` (or is dropped on save) and causes subtle logic bugs. If you need a new field, add a `@Column` property and re-install the module so the table is regenerated. Never reference a field that is not in the model. See `reference/anti-patterns.md` (#7) in the `mikopbx-module` skill.
 {% endhint %}
 
 ## How tables are created
@@ -328,14 +328,19 @@ class Tasks extends ModelsBase
      * @Identity
      * @Column(type="integer", nullable=false)
      */
-    public int $id;
+    public $id;
 
     /**
      * Public-facing unique identifier — expose this in the API, not $id.
      *
      * @Column(type="string", nullable=false)
      */
-    public string $uniqid;
+    public ?string $uniqid = '';
+
+    /**
+     * @Column(type="string", nullable=false)
+     */
+    public ?string $title = '';
 
     public function initialize(): void
     {
@@ -346,10 +351,12 @@ class Tasks extends ModelsBase
 ```
 {% endcode %}
 
-{% hint style="warning" %}
-The `Tasks` example types its primary key as `public int $id;` and its public id as `public string $uniqid;`. That works in that REST-API sample, but the **canonical** MikoPBX convention — and what the linter expects — is an untyped `public $id;` and a nullable `public ?string $uniqid = '';` (as in `Sip`). Prefer the core-model style for your own tables.
+{% hint style="danger" %}
+**Never add a PHP type to the primary key.** `public $id;` stays untyped even though every other property is typed. A typed `public int $id;` is *uninitialized* on a freshly constructed record, so the first time Phalcon reads it during `save()` PHP raises `Typed property ... must not be accessed before initialization` — a fatal error, not a validation failure. This was reproduced on a live PBX. Every core model in `Core/src/Common/Models/` uses untyped `public $id;`, and so does `Tasks.php` above.
 
-There is no automatic `uniqid` generator hook on `ModelsBase`. The base class provides the static helper `ModelsBase::generateUniqueID(string $alias = ''): string` (which returns `"{$alias}-{HASH}"`, where `{HASH}` is 4 random bytes rendered as 8 uppercase hex characters), but you must call it yourself — for example in a `beforeValidationOnCreate()` override or just before `save()`. Set `uniqid` explicitly; do not assume it is populated for you.
+The same reasoning applies to the other columns, which is why they are `public ?string $title = '';` rather than `public string $title;`: a **NOT NULL** column still needs a nullable PHP type with an initializer, so the property is always readable before the first `save()`. Declaring `public string $title;` for a `nullable=false` column reintroduces exactly the same uninitialized-property fatal.
+
+There is no automatic `uniqid` generator hook on `ModelsBase`. `beforeValidationOnCreate()` only fills annotation `default` values, and `uniqid` has none. The base class provides the static helper `ModelsBase::generateUniqueID(string $alias = ''): string` (which returns `"{$alias}-{HASH}"`, where `{HASH}` is 4 random bytes rendered as 8 uppercase hex characters), but you must call it yourself before `save()` — `ModuleExampleRestAPIv3` does this in its `SaveRecordAction` via `Tasks::generateUniqueID('TASK')`, mirroring how Core resources such as `DialplanApplications` set their `uniqid`.
 {% endhint %}
 
 ## Using the model

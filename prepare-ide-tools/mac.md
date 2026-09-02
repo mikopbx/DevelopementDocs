@@ -39,9 +39,9 @@ xcode-select --install
 # Install Composer
 brew install composer
 
-# Install php 7.4
-brew install php@7.4
-brew unlink php && brew link --overwrite --force php@7.4
+# Install PHP 8.4 — MikoPBX 2025.1.1 requires PHP ^8.4 (Core/composer.json)
+brew install php@8.4
+brew unlink php && brew link --overwrite --force php@8.4
 ```
 
 Install babel files to be able to convert JS files
@@ -179,7 +179,7 @@ With any modification of the source file, babel must create a final file.
 4. Set "**Name**" - Babel Core
 5. Set "**Program**" `$ProjectFileDir$/MikoPBXUtils/node_modules/.bin/babel`
 6. Set "**Arguments**" `$FilePath$ --out-dir $FileParentDir$/../pbx/$FileDirName$ --source-maps inline --presets airbnb`&#x20;
-7. Set "**Output path to refresh**": `$FileParentDir$/../pbx/$FileDirName$/$FileprNameWithoutExtension$.js:$FileParentDir$/../pbx/$FileDirName$/$FileNameWithoutExtension$.js.map`&#x20;
+7. Set "**Output path to refresh**": `$FileParentDir$/../pbx/$FileDirName$/$FileNameWithoutExtension$.js:$FileParentDir$/../pbx/$FileDirName$/$FileNameWithoutExtension$.js.map`&#x20;
 8. Set "**Auto-save edited files to trigger the watcher**"
 9. Set "**Trigger the watcher on external changes**"&#x20;
 10. Set "**Working directory**": `$ProjectFileDir$/MikoPBXUtils`
@@ -208,6 +208,21 @@ With any modification of the source file, babel must create a final file.
 ![](../.gitbook/assets/BabelModulesMac.jpg)
 
 ![](../.gitbook/assets/ScopeModulesMac.jpg)
+
+{% hint style="warning" %}
+**Where the compiled module JS must land.** Module sources live in
+`<module>/public/assets/js/src/`; Babel must write the compiled file one level up,
+into `<module>/public/assets/js/` — which is where the
+`--out-dir $FileParentDir$` above resolves to. Never
+compile into any `cache/` directory: `sites/admin-cabinet/assets/js/cache/<moduleUniqueID>`
+is a **symlink** the installer creates pointing at your module's `public/assets/js`
+(`PbxExtensionUtils::createAssetsSymlinks()`), and the same is done for `css/cache`
+and `img/cache`.
+
+Name the compiled files per action — `module-<kebab-uniqueid>-<action>.js`. See the
+shipping example `Extensions/ModuleUsersUI/public/assets/js/`
+(`module-users-ui-index.js`, `module-users-ui-extensions-modify.js`, …).
+{% endhint %}
 
 ### PHPStorm: setup Phalcon
 

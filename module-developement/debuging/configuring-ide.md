@@ -4,7 +4,7 @@
 
 Go to "**Settings**" - "**Preferences**" - "**PHP**" - "**Debug**"
 
-Setup **xDebug**:
+Setup **xDebug**. MikoPBX runs **Xdebug 3**, so the "Debug port" field must contain **9003** (the screenshots below were taken with an older default of 9000):
 
 ![xDebug setup PHP Storm](../../.gitbook/assets/sdebug-Preferences.png)
 

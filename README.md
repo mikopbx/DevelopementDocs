@@ -37,7 +37,7 @@ It also pins the Composer platform to PHP `8.4` (see the `config.platform` block
 {% endhint %}
 
 {% hint style="success" %}
-**Module development baseline — recommended for new modules.** The official `mikopbx-module` skill (`Core/.claude/skills/mikopbx-module/SKILL.md`) targets the same platform for newly generated modules:
+**Module development baseline — recommended for new modules.** The official `mikopbx-module` skill from [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills) targets the same platform for newly generated modules:
 
 * PHP **8.4**
 * Phalcon **5.9.3**
@@ -61,7 +61,7 @@ The path from zero to an installable module is short:
 2. **Scaffold from the template.** Clone the module template and rename its folders, files and classes with the provided script. See [How to start](module-developement/template-module-structure.md). The reference template lives in the repo at `Extensions/ModuleTemplate/`.
 3. **Install it on a MikoPBX instance** and iterate. Your skeleton module is installable immediately; you then layer real behavior on top.
 
-Throughout this guide we follow a single running example — a fictional module named **`ModuleBlackList`** that blocks unwanted callers. Its configuration class is `BlackListConf`, its main class is `BlackListMain`, its model is `BlackListNumbers` (backed by the SQLite table `m_BlackListNumbers`), and its front-end script is `module-black-list.js`. Every pattern in the guide is illustrated with this module and then anchored to a **real, working example module** in the repository so you can read production-quality source. The canonical examples are:
+Throughout this guide we follow a single running example — a fictional module named **`ModuleBlackList`** that blocks unwanted callers. Its configuration class is `BlackListConf`, its main class is `BlackListMain`, its model is `BlackListNumbers` (backed by the SQLite table `m_BlackListNumbers`), and its front-end script is `module-black-list-index.js`. Every pattern in the guide is illustrated with this module and then anchored to a **real, working example module** in the repository so you can read production-quality source. The canonical examples are:
 
 * Web UI form: `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`
 * REST API (current v3 style): `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/`
@@ -86,7 +86,7 @@ Start with a clean **data model** (your SQLite tables described as Phalcon model
 
 ## Orientation map
 
-This guide is organized into four parts. Pick the one that matches what you are doing:
+This guide is organized into five parts. Pick the one that matches what you are doing:
 
 ### 1. Module development
 
@@ -100,9 +100,13 @@ How MikoPBX is built underneath your module — the [Core](core.md), the admin i
 
 Task-focused recipes you can copy: building [forms](cookbook/forms/README.md) and [datatables](cookbook/forms/create-datatable.md), [hooking on incoming calls](cookbook/asterisk/hook-on-incoming-call.md), [interacting with AMI](cookbook/asterisk/interact-with-ami.md), [modifying `extensions.conf`](cookbook/asterisk/modify-extensions.conf.md), and handling [rights and authentication](cookbook/rights-and-auth/README.md).
 
-### 4. AI-assisted development
+### 4. Marketplace
 
-MikoPBX ships an official module-generation skill (`Core/.claude/skills/mikopbx-module/SKILL.md`) that scaffolds and augments modules from a natural-language description, following the exact conventions in this guide. See the [AI-assisted development](ai-assisted-development/README.md) chapter for how to drive it.
+How to publish a finished module and, if you want to, charge for it — see [Licensing](marketplace/licensing.md).
+
+### 5. AI-assisted development
+
+MikoPBX publishes open-standard [Agent Skills](https://agentskills.io) in the [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills) repository. The main one, `mikopbx-module`, scaffolds and augments modules from a natural-language description, following the exact conventions in this guide; it installs into Claude Code, Codex, Cursor, Gemini CLI and other agents with `npx skills add mikopbx/agent-skills`. See the [AI-assisted development](ai-assisted-development/README.md) chapter for how to install and drive it.
 
 ## Make money or share it for free
 

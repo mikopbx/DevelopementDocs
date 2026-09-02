@@ -64,10 +64,10 @@ The namespace must be `Modules\{ModuleUniqueID}\Lib`. The `ConfigClass` construc
 
 | Interface | Concern | Examples of overrides |
 | --------- | ------- | --------------------- |
-| `SystemConfigInterface` | OS-level lifecycle: cron, firewall, fail2ban, nginx, PBX start, enable/disable | `createCronTasks()`, `onAfterPbxStarted()`, `onAfterModuleEnable()` |
+| `SystemConfigInterface` | OS-level lifecycle: cron, firewall, fail2ban, nginx, PBX start, enable/disable, background workers | `createCronTasks()`, `onAfterPbxStarted()`, `onAfterModuleEnable()`, `getModuleWorkers()` |
 | `RestAPIConfigInterface` | PBXCoreREST endpoints handled under root rights | `getPBXCoreRESTAdditionalRoutes()`, `moduleRestAPICallback()` |
 | `WebUIConfigInterface` | Admin Cabinet: assets, ACL, menu, forms, Volt blocks, routes | `onBeforeHeaderMenuShow()`, `onAfterAssetsPrepared()`, `onAfterACLPrepared()` |
-| `AsteriskConfigInterface` | Asterisk config file fragments: `extensions.conf`, `pjsip.conf`, `manager.conf`, `features.conf` | `generateManagerConf()`, `extensionGenContexts()`, `getModuleWorkers()` |
+| `AsteriskConfigInterface` | Asterisk config file fragments: `extensions.conf`, `pjsip.conf`, `manager.conf`, `features.conf` | `generateManagerConf()`, `extensionGenContexts()`, `generatePeersPj()` |
 
 The class declaration in the Core spells this out:
 
@@ -190,7 +190,7 @@ public function modelsEventChangeData($data): void
 
 ### getModuleWorkers()
 
-Returns the list of long-running background workers the Core should keep alive for your module. `WorkerSafeScriptsCore` monitors and restarts them. Each entry is `['type' => ..., 'worker' => WorkerClass::class]`.
+Returns the list of long-running background workers the Core should keep alive for your module. Despite being about processes rather than the OS, it is declared on `SystemConfigInterface` (`Core/src/Modules/Config/SystemConfigInterface.php`, constant `GET_MODULE_WORKERS`). `WorkerSafeScriptsCore` monitors and restarts them. Each entry is `['type' => ..., 'worker' => WorkerClass::class]`.
 
 The `type` selects the liveness-check strategy and is one of the constants defined in `Core/src/Core/Workers/Cron/WorkerSafeScriptsCore.php`:
 
@@ -198,6 +198,7 @@ The `type` selects the liveness-check strategy and is one of the constants defin
 | -------- | ----- | ------- |
 | `WorkerSafeScriptsCore::CHECK_BY_AMI` | `checkWorkerAMI` | Workers driven by Asterisk Manager Interface events |
 | `WorkerSafeScriptsCore::CHECK_BY_BEANSTALK` | `checkWorkerBeanstalk` | Workers consuming a Beanstalk queue |
+| `WorkerSafeScriptsCore::CHECK_BY_REDIS` | `checkWorkerRedis` | Workers consuming a Redis queue |
 | `WorkerSafeScriptsCore::CHECK_BY_PID_NOT_ALERT` | `checkPidNotAlert` | Plain PID-based liveness without alerting |
 
 {% code title="Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiConf.php" %}

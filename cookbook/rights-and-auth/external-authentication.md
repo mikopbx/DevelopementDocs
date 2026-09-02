@@ -66,24 +66,22 @@ The contract for each module is therefore:
 * return **`[]`** to say "not my user" — the loop continues to the next module,
   and ultimately authentication fails with a normal "invalid credentials" error.
 
-The constant name is fixed by the interface:
+The constant and the method signature are both fixed by the interface:
 
 {% code title="Core/src/Modules/Config/WebUIConfigInterface.php" %}
 ```php
+// line 39
 public const string AUTHENTICATE_USER = 'authenticateUser';
 
-public const string GET_PASSKEY_SESSION_DATA = 'getPasskeySessionData';
-
-/**
- * Authenticates a user over an external module.
- *
- * @param string $login    The user login entered on the login page.
- * @param string $password The user password entered on the login page.
- * @return array The session data.
- */
+// line 70
 public function authenticateUser(string $login, string $password): array;
 ```
 {% endcode %}
+
+`ConfigClass` ships a no-op implementation at
+`Core/src/Modules/Config/ConfigClass.php:405`, so `authenticateUser()` is a
+method you **override**, and every module already satisfies the interface whether
+or not it cares about login.
 
 ## The session-data array
 
@@ -165,6 +163,17 @@ class ExternalAuthConfig extends ModulesModelsBase
 }
 ```
 {% endcode %}
+
+{% hint style="warning" %}
+**Column typing rules — these are not stylistic.** The primary key must stay
+**untyped** (`public $id;`): giving it an `int` type causes a fatal during
+`save()`. String columns are either left untyped or declared `?string` with an
+empty-string (or other non-null) default — never a non-nullable typed property.
+`LdapConfig` shows both shapes side by side: untyped `public $serverName;`,
+`public $baseDN;` alongside `public ?string $tlsMode = 'none';` and
+`public ?string $verifyCert = '0';`
+(`Extensions/ModuleUsersUI/Models/LdapConfig.php:32-140`).
+{% endhint %}
 
 {% hint style="info" %}
 Store only the **service/bind** account credentials and connection parameters
@@ -335,9 +344,27 @@ takes only the login and **no password**:
 
 {% code title="Core/src/Modules/Config/WebUIConfigInterface.php" %}
 ```php
+// line 41 — the constant, and nothing else
 public const string GET_PASSKEY_SESSION_DATA = 'getPasskeySessionData';
 ```
 {% endcode %}
+
+{% hint style="warning" %}
+**This hook is not symmetric with `authenticateUser()`.** The interface declares
+only the *constant* at line 41 — there is **no**
+`public function getPasskeySessionData(string $login): array;` declaration in
+`WebUIConfigInterface`, and **no** no-op base implementation in `ConfigClass`
+(compare `authenticateUser()`, which has both). So this is a method you **add**
+to your config class, not one you override; your IDE will not offer to generate
+it, and misspelling it fails silently.
+
+It works at all only because `PBXConfModulesProvider::hookModulesMethod()` guards
+every dispatch with `method_exists($configClassObj, $methodName)` and skips
+modules that lack the method
+(`Core/src/Common/Providers/PBXConfModulesProvider.php:94-115`). Match the
+signature exactly — `getPasskeySessionData(string $login): array` — since nothing
+in the type system will check it for you.
+{% endhint %}
 
 The Core action fans the login out to modules to build the session:
 

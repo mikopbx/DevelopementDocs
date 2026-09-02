@@ -1,25 +1,139 @@
 ---
 description: >-
-  Using the /mikopbx-module AI skill to create, augment and optimize modules.
+  Developing MikoPBX modules with AI coding agents: the mikopbx/agent-skills
+  repository, the /mikopbx-module skill and how to install it into any agent.
 ---
 
 # Overview
 
-MikoPBX ships with an AI skill, **`/mikopbx-module`**, that turns a plain-language
-description into a complete, convention-correct module. Instead of hand-copying
-boilerplate from an example module, you describe what you want and the skill runs a
-structured discovery dialog, selects the right integration recipes, generates the full
-file tree from canonical templates and EXAMPLES, and self-checks the result.
+MikoPBX publishes a set of open-standard **Agent Skills** for module development in the
+[mikopbx/agent-skills](https://github.com/mikopbx/agent-skills) repository. The main one,
+**`/mikopbx-module`**, turns a plain-language description into a complete,
+convention-correct module. Instead of hand-copying boilerplate from a reference module, you
+describe what you want and the skill runs a structured discovery dialog, selects the right
+integration recipes, generates the full file tree from canonical templates and reference
+modules, and self-checks the result.
 
-This chapter explains what the skill is, the four modes it operates in, how to activate
-it, and what guarantees it makes about the code it emits.
+This chapter explains where the skills live, how to install them into your agent, the four
+modes `/mikopbx-module` operates in, how to activate it, and what guarantees it makes about
+the code it emits.
 
 {% hint style="info" %}
-The skill is a development-time tool. It runs in your AI coding environment (it has
-`Read`, `Write`, `Edit`, `Grep`, `Glob` and `Bash` access) and writes source files into
-your checkout. It does **not** run inside MikoPBX itself, and nothing it generates depends
-on the skill being present at runtime — the output is ordinary module code you own.
+The skills are development-time tools. They run in your AI coding environment and write
+source files into your checkout. They do **not** run inside MikoPBX itself, and nothing they
+generate depends on a skill being present at runtime — the output is ordinary module code you
+own.
 {% endhint %}
+
+## Where the skills live
+
+Every skill is a folder with a `SKILL.md` file that follows the
+[Agent Skills](https://agentskills.io) open standard. The same folder works without
+modification in Claude Code, OpenAI Codex, Gemini CLI, Cursor, GitHub Copilot, OpenCode and
+any other agent that implements the standard. The skills were extracted from the tooling the
+MikoPBX core team uses daily and carry the same hook reference, recipes, anti-pattern
+catalogue and validation scripts.
+
+The repository layout:
+
+```
+agent-skills/
+├── README.md
+├── LICENSE                      # GPL-3.0-or-later, same as MikoPBX
+└── skills/
+    ├── mikopbx-module/          # the module generator (this chapter)
+    │   ├── SKILL.md
+    │   ├── reference/           # hook-reference, recipes, anti-patterns, naming, structure
+    │   ├── templates/           # per-recipe generation templates
+    │   └── scripts/             # validate-rest-api-translations.php
+    ├── api-client/
+    ├── endpoint-validator/
+    ├── openapi-analyzer/
+    ├── api-test-generator/
+    ├── sqlite-inspector/
+    ├── log-analyzer/
+    ├── asterisk-validator/
+    ├── asterisk-tester/
+    ├── babel-compiler/
+    └── translations/
+```
+
+Whenever a page in this guide cites `reference/hook-reference.md` or
+`reference/anti-patterns.md`, the path is relative to `skills/mikopbx-module/` in that
+repository.
+
+## Installing the skills
+
+The quickest way is the [skills CLI](https://github.com/vercel-labs/skills), which detects the
+agents installed on your machine and copies the skill folders into the right place for each:
+
+{% tabs %}
+{% tab title="Interactive" %}
+```bash
+# pick the skills and the agents you want
+npx skills add mikopbx/agent-skills
+```
+{% endtab %}
+
+{% tab title="Everything" %}
+```bash
+# all skills, for every agent detected on this machine, no prompts
+npx skills add mikopbx/agent-skills --all
+```
+{% endtab %}
+
+{% tab title="Specific agents" %}
+```bash
+# project-local install for Claude Code and Codex only
+npx skills add mikopbx/agent-skills -a claude-code -a codex
+
+# user-wide instead of the current project
+npx skills add mikopbx/agent-skills -g
+```
+{% endtab %}
+
+{% tab title="Manual" %}
+Clone the repository and copy the folders you need from `skills/` into your agent's skills
+directory — `.claude/skills/`, `.codex/skills/`, `.agents/skills/`, `.cursor/skills/` and so
+on. Each skill is self-contained.
+{% endtab %}
+{% endtabs %}
+
+Run the install from the directory where you develop modules. Most skills assume a checkout
+of [mikopbx/Core](https://github.com/mikopbx/Core) next to your module and a running MikoPBX
+(the development Docker container or a real PBX reachable over SSH); each `SKILL.md` states
+what it needs.
+
+{% hint style="info" %}
+**The Core repository is agent-ready too.** Every directory of `mikopbx/Core` carries an
+`AGENTS.md` with the conventions and pitfalls an agent cannot infer from the code alone
+(imports, bootstrap, where Babel output goes, how to run the tests). `CLAUDE.md` files next to
+them simply include the `AGENTS.md`, so Claude Code and every agent that reads `AGENTS.md`
+see the same guidance. Keep a Core checkout available to the agent while you work: the skill
+reads Core source for hook signatures and the reference modules for patterns.
+{% endhint %}
+
+## The skill set
+
+`/mikopbx-module` is the entry point; the other skills are the tools it and you reach for
+during generation, testing and release.
+
+| Skill                | Use it when                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| `mikopbx-module`     | Creating or extending a module: structure, hooks, forms, REST endpoints, workers, translations, packaging. |
+| `api-client`         | Calling the MikoPBX REST API v3 with automatic authentication, from the host or inside the dev container. |
+| `endpoint-validator` | Checking a REST endpoint implementation against its OpenAPI schema and data structure.                    |
+| `openapi-analyzer`   | Extracting and inspecting the OpenAPI 3.1 specification served by a running MikoPBX.                      |
+| `api-test-generator` | Generating pytest suites for REST endpoints with schema validation.                                       |
+| `sqlite-inspector`   | Verifying data in the MikoPBX SQLite databases after API or module operations.                            |
+| `log-analyzer`       | Reading and correlating MikoPBX logs (system, PHP, Asterisk, nginx, fail2ban).                            |
+| `asterisk-validator` | Validating generated Asterisk configuration files and Asterisk logs.                                      |
+| `asterisk-tester`    | Running dialplan and call-flow scenarios against a MikoPBX instance.                                      |
+| `babel-compiler`     | Transpiling ES6+ admin-interface JavaScript to the ES5 bundle MikoPBX ships.                              |
+| `translations`       | Managing the multilingual `Messages/` catalogs with Russian as the source language.                       |
+
+`/mikopbx-module` calls `babel-compiler` and `translations` itself during generation, so
+install at least those three together.
 
 ## Target platform
 
@@ -46,13 +160,18 @@ The skill recognizes intent from your message and works in one of four modes.
 Generates a brand-new module from a description. This is a four-phase pipeline:
 
 1. **Discovery dialog** — the skill parses your description, proposes a module name
-   (`Module{Feature}`), asks where it should live (`Extensions/` for production modules or
-   `Extensions/EXAMPLES/{Category}/` for learning modules), and proposes a set of recipes.
-2. **Generation** — files are emitted in dependency order (`module.json`,
-   `Setup/PbxExtensionSetup.php`, models, the `{Feature}Conf` config class, then UI / REST /
-   worker / AGI files as the chosen recipes require).
-3. **Post-generation checks** — `php -l` on every generated PHP file, Babel transpilation of
-   JavaScript, and a `module.json` validity check.
+   (`Module{Feature}`), asks whether you are building a *production module* (its own
+   repository, README pair and publish workflow) or an *example / learning module* (a
+   minimal module that demonstrates one pattern), and proposes a set of recipes.
+2. **Generation** — files are emitted in dependency order (`module.json`, the
+   `README.md` / `README.ru.md` pair and `.github/workflows/build.yml` for production
+   modules, `Setup/PbxExtensionSetup.php`, models, the `{Feature}Conf` config class, then
+   UI / REST / worker / AGI files as the chosen recipes require, and `Messages/` last).
+3. **Post-generation checks** — `php -l` on every generated PHP file, Babel transpilation
+   of JavaScript, a `module.json` validity check, a grep proving each `Messages/*.php`
+   catalog is a standalone literal array, existence tests for the README pair and the build
+   workflow (production modules only), and the REST/OpenAPI translation validator when the
+   `rest-api` recipe is present.
 4. **Report** — a summary of files created, recipes applied, check results, and next steps.
 
 ### 2. Augment Existing Module
@@ -96,17 +215,29 @@ with you before generation).
 See [Module recipes](../module-developement/recipes.md) for the full specification of each
 recipe and the files it produces.
 
+## Beyond code: the production repository contract
+
+For a module headed to a real repository, the skill also generates the release plumbing: an
+administrator-facing `README.md` / `README.ru.md` pair, a `.github/workflows/build.yml`
+built on the shared
+`mikopbx/.github-workflows/.github/workflows/extension-publish.yml@master` reusable workflow
+(`develop`, `master`, `workflow_dispatch`), and the `release_settings.publish_release`,
+`changelog_enabled` and `create_github_release` flags in `module.json`. See
+[What it generates](what-it-generates.md) for the full contract and what you still have to
+verify by hand.
+
 ## Activation phrases
 
 The skill activates on natural-language requests in Russian or English, or on an explicit
-`/mikopbx-module` invocation:
+`/mikopbx-module` invocation (the slash form is how Claude Code exposes skills; other agents
+pick the skill up from the description in `SKILL.md`, so a plain sentence is enough):
 
 {% tabs %}
 {% tab title="English" %}
-* `Create module for ...` / `Generate module ...`
-* `Add to module ModuleBlackList ...`
-* `Optimize module ModuleBlackList`
-* `How to make module ...` / `Improve module ...`
+* `Create a module for ...` / `Generate a module ...`
+* `Add to the module ModuleBlackList ...`
+* `Optimize the module ModuleBlackList`
+* `How do I make a module ...` / `Improve the module ...`
 * `/mikopbx-module ...`
 {% endtab %}
 
@@ -124,14 +255,14 @@ The skill activates on natural-language requests in Russian or English, or on an
 The running example throughout this guide is a fictional spam-blocking module,
 **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`, model
 `BlackListNumbers` backed by table `m_BlackListNumbers`, front-end script
-`module-black-list.js`). A "create" session for it might begin:
+`module-black-list-index.js`). A "create" session for it might begin:
 
 ```
 You:   Create a module that blocks incoming calls from a blacklist of numbers,
        with a settings page and a REST API to manage the list.
 
-Skill: Proposed name: ModuleBlackList. Where should it live —
-       Extensions/ (production) or Extensions/EXAMPLES/ (example)?
+Skill: Proposed name: ModuleBlackList. Is this a production module
+       (own repository, README pair, publish workflow) or an example module?
        Recipes I plan to apply: base, ui, rest-api, dialplan.
        A few questions before I generate:
          - Should blocked numbers be stored in the database? (suggests model
@@ -143,25 +274,33 @@ Skill: Proposed name: ModuleBlackList. Where should it live —
 {% hint style="warning" %}
 **The skill asks a lot of questions and waits for plan approval before it writes anything.**
 This is by design — clarifying intent up front is cheaper than regenerating a wrong tree.
-Expect a discovery dialog, then a proposed plan (name, location, recipes, file list). The
-skill generates only after you approve that plan.
+Expect a discovery dialog, then a proposed plan (name, kind, recipes, file list). The skill
+generates only after you approve that plan.
 {% endhint %}
 
 When generation completes, the skill reports the created files and the results of its
-self-checks (PHP lint, Babel, `module.json` validation) so you can review before installing.
+self-checks (PHP lint, Babel, `module.json` validation and the rest) so you can review before
+installing.
 
 ## How the code is grounded
 
-The skill does not hallucinate module structure. Before emitting code it studies the
-canonical example modules shipped in the repository and mirrors their patterns:
+The skill does not invent module structure. Before emitting code it reads the actual source
+of the reference modules MikoPBX publishes at
+[github.com/mikopbx](https://github.com/mikopbx) — starting with
+[ModuleTemplate](https://github.com/mikopbx/ModuleTemplate) — and mirrors their patterns:
 
-* REST API (current version): `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/`
-* Web UI settings page: `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`
-* AMI / background workers: `Extensions/EXAMPLES/AMI/ModuleExampleAmi/`
-* Earlier REST API styles: `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv{1,2}/`
+* Web UI: a reference module with `App/Controllers`, `App/Forms`, `App/Views` and
+  `public/assets/js/src`
+* REST API v3: a reference module with `Lib/RestAPI/{Resource}/` controllers, processors,
+  data structures and actions
+* Workers: a reference module with an AMI event worker registered through
+  `getModuleWorkers()`
 
-These are the same reference modules documented elsewhere in this guide, so the generated
-code looks like — and links cleanly against — the rest of the MikoPBX module ecosystem.
+The templates bundled with the skill only summarize the structure; the published modules are
+the canonical reference. They are the same modules documented elsewhere in this guide (see
+[Template module structure](../module-developement/template-module-structure.md)), so the
+generated code looks like — and links cleanly against — the rest of the MikoPBX module
+ecosystem.
 
 ## Next steps
 

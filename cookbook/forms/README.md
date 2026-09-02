@@ -14,8 +14,17 @@ Every recipe is anchored to a real, working example module —
 `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/` — and uses primary-source
 APIs from the core `BaseForm` class. Throughout the cookbook we thread a single
 fictional module, **ModuleBlackList** (config class `BlackListConf`, main class
-`BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`, front-end
-asset `module-black-list.js`), so the recipes read as one continuous story.
+`BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`), so the
+recipes read as one continuous story.
+
+{% hint style="info" %}
+**Asset names are per-action, not per-module.** The cabinet loads
+`module-<kebab-module-name>-<action>.js` and the matching `.css` — so
+ModuleBlackList's edit page uses `module-black-list-modify.js` and its list page
+uses `module-black-list-index.js`. There is no single `module-black-list.js`.
+The example module follows the same rule with
+`module-example-form-modify.js` / `module-example-form-index.js`.
+{% endhint %}
 
 ## What a module form is made of
 
@@ -75,7 +84,7 @@ class ModuleExampleFormForm extends BaseForm
 
 * `addTextArea(string $areaName, string $areaValue, int $areaWidth = 90, array $options = [])` — multi-line input with auto-height.
 * `addCheckBox(string $fieldName, bool $checked, string $checkedValue = 'on')` — checkbox or toggle (the `toggle` CSS class is chosen in the Volt view).
-* `addSemanticUIDropdown(string $name, array $options = [], $value = null, array $attributes = [])` — a Fomantic UI dropdown, fed either static options or rows from a model.
+* `addSemanticUIDropdown(string $name, array $options = [], $value = null, array $attributes = [])` — a Fomantic UI dropdown, fed either static options or rows from a model. Note it is declared **`protected`** (`BaseForm.php:114`), so you can only call it from inside your own form subclass, not from a controller.
 
 For plain `Text`, `Password`, `Numeric`, and `Hidden` fields just call the
 inherited `$this->add(new Element(...))` — no helper needed.
@@ -154,13 +163,20 @@ $footerCollectionJS
 ```
 {% endcode %}
 
-So after editing any `src/*.js` file you must transpile it to the cache
-directory before the change is visible. Run Babel with the airbnb preset:
+`js/cache/<moduleUniqueID>` is **not** a directory the build writes into — it is a
+symlink the installer creates pointing at your module's `public/assets/js`
+(`PbxExtensionUtils::createAssetsSymlinks()`,
+`Core/src/Modules/PbxExtensionUtils.php:105-114`; the same is done for `css` and
+`img`). So the URL `js/cache/ModuleBlackList/module-black-list-modify.js`
+resolves to `<moduleDir>/public/assets/js/module-black-list-modify.js`.
+
+That means Babel's output directory is `public/assets/js` — the **parent** of
+`src/`, not a `cache` subfolder:
 
 {% code title="bash" %}
 ```bash
-babel public/assets/js/src/module-black-list.js \
-  --out-dir public/assets/js/cache \
+babel public/assets/js/src/module-black-list-modify.js \
+  --out-dir public/assets/js \
   --source-maps inline \
   --presets airbnb
 ```

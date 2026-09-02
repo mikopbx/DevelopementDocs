@@ -1,24 +1,14 @@
 # Debug PHP-AGI
 
-To debug a PHP AGI script, you need:
+AGI scripts are executed by Asterisk, so the debug configuration has to be in place *before* Asterisk starts a new dialplan channel.
 
-* Get the IP address of the PC from which debugging will be performed - e.g. **192.168.1.65**
-* Set environment variables: `export XDEBUG_CONFIG="remote_port=9000 remote_host=`**`192.168.1.65`**`  ``remote_enable=1 remote_mode=req remote_autostart=0 remote_connect_back=0";`
-* Restart the asterisk process
-
-Full example:
+Run on the PBX:
 
 ```
-killall safe_asterisk; 
-killall asterisk; 
-export XDEBUG_CONFIG="remote_port=9000 remote_host=192.168.1.65  remote_enable=1 remote_mode=req remote_autostart=0 remote_connect_back=0";
-nohup safe_asterisk -f > /dev/null 2>&1 &
+pbx-console xdebug enable-agi 192.168.1.65
 ```
 
-In MikoPBX, it is enough to run the command:
+* **192.168.1.65** — IP address of the PC where PhpStorm is running.
+* The command creates or updates `/etc/php.d/15-xdebug.ini` (the same file as `enable-cli`, with `xdebug.client_port=9003` and `xdebug.start_with_request=yes`) and then restarts the Asterisk daemon with `monit restart asterisk`.
 
-```
-xdebug-enable-agi 192.168.1.65
-```
-
-Be careful! Debugging the AGI can disrupt the operation of the PBX
+Be careful! Restarting Asterisk drops all active calls, and a breakpoint held inside an AGI script blocks the channel that is executing it. Do not do this on a production PBX.

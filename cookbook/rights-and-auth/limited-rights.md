@@ -42,12 +42,38 @@ aliased as `AclList`). The ACL has three kinds of entries:
 - **Rules** — `allow($role, $component, $actions)` grants a role the listed
   controller actions (`index`, `modify`, `save`, …).
 
-The built-in admins role (`AclProvider::ROLE_ADMINS`, value `admins`) gets
-`allow('admins', '*', '*')`. A module that introduces
-limited users defines additional roles and grants each one only the controllers
-and actions it should reach. When the user's session role is set to one of those
-custom roles, the `SecurityPlugin` denies every request that the ACL does not
-explicitly allow.
+The ACL is built in `Core/src/Common/Providers/AclProvider.php` and starts from
+`setDefaultAction(AclEnum::DENY)` — **anything not explicitly allowed is denied**.
+Two roles are then registered before any module is consulted:
+
+- `AclProvider::ROLE_ADMINS` (`'admins'`) gets `allow('admins', '*', '*')` — the
+  administrator bypasses every check.
+- `AclProvider::ROLE_GUESTS` (`'guests'`) gets `deny('guests', '*', '*')` — the
+  anonymous default.
+
+A module that introduces limited users defines additional roles and grants each
+one only the controllers and actions it should reach. When the user's session
+role is set to one of those custom roles, the `SecurityPlugin` denies every
+request that the ACL does not explicitly allow.
+
+{% hint style="warning" %}
+**Two bypasses you must know about before you rely on the ACL.**
+`SecurityPlugin::isAllowedAction()` (`Core/src/AdminCabinet/Plugins/SecurityPlugin.php`)
+reads the role from the JWT (Bearer header, or the `refreshToken` cookie mapped
+through Redis). When no role can be extracted it falls back to
+`ROLE_ADMINS` for **localhost** requests and `ROLE_GUESTS` for everything else.
+On top of that, `beforeDispatch()` skips the ACL check entirely for
+`isLocalHostRequest()`. So a request originating from `127.0.0.1` — internal
+workers, health checks, anything proxied without the original client address —
+is treated as an administrator. Never model your access control on the
+assumption that the ACL is the only gate for local traffic.
+{% endhint %}
+
+The ACL also grants a few things to `'*'` (every role) *after* the module hook
+runs: the `Errors` controller (`show401`/`show404`/`show500`), the `Session`
+controller (`index`/`start`/`changeLanguage`/`end`) and the stateless password
+helper endpoints. You cannot revoke those from a module hook — they are added
+after your `onAfterACLPrepared()` returns.
 
 {% hint style="warning" %}
 The assembled ACL is **cached**. After you change anything that affects role
@@ -239,21 +265,30 @@ public function applyACLFiltersToCDRQuery(array &$parameters, array $sessionCont
 ```
 {% endcode %}
 
-`$parameters` is the Phalcon query-builder array (`conditions`, `bind`, …) that is
-about to run. You mutate it in place to add your `WHERE` clause. `$sessionContext`
-tells you **which context** you are in — and this difference is critical:
+`$parameters` is the Phalcon query-builder array (`conditions`, `bind`) that is
+about to run. You mutate it in place to add your `WHERE` clause.
 
-- **REST API context** — the PHP session is not available. The Core fills
-  `$sessionContext` from the caller's JWT token:
-  - `$sessionContext['role']` — the user's role,
-  - `$sessionContext['user_name']` — the login,
-  - `$sessionContext['session_id']` — the token/session id.
-- **AdminCabinet context** — `$sessionContext` is an **empty array** (`[]`).
-  Read the role from the session via `SessionProvider` instead.
+`$sessionContext` is filled from the caller's JWT by
+`Core/src/PBXCoreREST/Controllers/BaseController.php` (lines 368-387) and carries:
 
-Both behaviours are documented on the interface itself
-(`Core/src/Modules/Config/CDRConfigInterface.php`) and the hook is invoked from
-`Core/src/PBXCoreREST/Lib/Cdr/GetListAction.php`:
+- `$sessionContext['role']` — the user's role,
+- `$sessionContext['user_name']` — the login,
+- `$sessionContext['session_id']` — the token/session id.
+
+{% hint style="warning" %}
+The interface docblock still describes an "AdminCabinet context" in which
+`$sessionContext` arrives empty and you are told to read the role from
+`SessionProvider`. That branch is **dead in 2025.1.1**. The hook has exactly one
+call site — `Core/src/PBXCoreREST/Lib/Cdr/GetListAction.php:225` — and the
+AdminCabinet *Call Detail Records* page reaches it over the REST API too: its
+controller is a static shell and the grid fetches `/pbxcore/api/v3/cdr`
+(`Core/sites/admin-cabinet/assets/js/src/CallDetailRecords/call-detail-records-index.js:264`),
+so the JWT is always present. `ModuleUsersUI` reflects this — it simply returns
+early when `$sessionContext['role']` is null. Write the same shape; do not build
+a `SessionProvider` fallback.
+{% endhint %}
+
+The hook is invoked from `Core/src/PBXCoreREST/Lib/Cdr/GetListAction.php`:
 
 {% code title="Core/src/PBXCoreREST/Lib/Cdr/GetListAction.php" %}
 ```php
@@ -269,18 +304,11 @@ Step 1) and rewrites the query conditions:
 
 {% code title="Extensions/ModuleBlackList/Lib/BlackListConf.php" %}
 ```php
-use MikoPBX\Common\Providers\SessionProvider;
-
 public function applyACLFiltersToCDRQuery(array &$parameters, array $sessionContext = []): void
 {
-    // REST API: role comes from the JWT-derived sessionContext.
-    // AdminCabinet: sessionContext is empty -> read the role from the session.
-    if (!empty($sessionContext['role'])) {
-        $role = $sessionContext['role'];
-    } else {
-        $session = $this->di->get(SessionProvider::SERVICE_NAME);
-        $role = $session->get('role'); // null for the unrestricted admin
-    }
+    // The role always comes from the JWT-derived sessionContext.
+    // It is null for the unrestricted administrator.
+    $role = $sessionContext['role'] ?? null;
 
     if (empty($role) || strpos($role, self::ROLE_PREFIX) !== 0) {
         return; // not one of our roles -> no filtering
@@ -390,8 +418,7 @@ routing.
 3. Override `onGetControllerPermissions()` to add custom UI flags under
    `data.custom` (UI hint only — never your sole guard).
 4. Override `applyACLFiltersToCDRQuery()` to add per-role CDR `WHERE` clauses;
-   read the role from `$sessionContext['role']` (REST) or from `SessionProvider`
-   (AdminCabinet, empty `$sessionContext`).
+   read the role from `$sessionContext['role']` and return early when it is null.
 5. Guard your REST controllers with `#[ResourceSecurity(...)]`.
 
 ## See also

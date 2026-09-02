@@ -8,7 +8,7 @@ description: >-
 
 A module's web interface lives inside the MikoPBX admin cabinet. It is a small, self-contained Phalcon MVC application that the core mounts as a module: your controllers extend the core `BaseController`, your forms extend the core `BaseForm`, and your views are rendered by the [Volt template engine](https://docs.phalcon.io/5.0/en/volt) using the global Fomantic UI / jQuery toolkit shared with the rest of the cabinet.
 
-This page walks the full UI recipe through a running example module, **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`, JS file `module-black-list.js`). For every pattern there is a pointer to a real, working module you can read and copy:
+This page walks the full UI recipe through a running example module, **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`, JS file `module-black-list-index.js`). For every pattern there is a pointer to a real, working module you can read and copy:
 
 * **`Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`** — the canonical single-form example. Read this first.
 * **`Extensions/ModuleUsersUI/`** — a larger production module with several controllers, custom providers and a sidebar item.
@@ -28,9 +28,9 @@ Modules/ModuleBlackList/
     │   └── ModuleBlackList
     │       ├── index.volt
     │       └── modify.volt
-    └── Providers
-        ├── ViewProvider.php
-        └── VoltProvider.php
+    └── Providers          # usually empty — see Providers below
+        ├── ViewProvider.php   # optional
+        └── VoltProvider.php   # optional
 public/assets/js/src/
     └── module-black-list-modify.js
 ```
@@ -101,7 +101,7 @@ public function indexAction(): void
   * `AssetProvider::HEADER_CSS` — CSS injected in `<head>`.
   * `AssetProvider::FOOTER_JS` — JS injected before `</body>` (this is where module scripts go).
   * also available: `HEADER_JS`, `HEADER_PBX_JS`, `SEMANTIC_UI_CSS`, `SEMANTIC_UI_JS`, `FOOTER_PBX_JS`.
-* Reference the **compiled** asset under `js/cache/<UniqueID>/...` / `css/cache/<UniqueID>/...`. You author the source in `public/assets/js/src/` and Babel compiles it into the cache directory (see [JavaScript](#javascript)). The second argument `true` marks the path as local (relative to the module asset root).
+* Reference the **compiled** asset under `js/cache/<UniqueID>/...` / `css/cache/<UniqueID>/...`. You author the source in `public/assets/js/src/` and Babel compiles it one directory up into `public/assets/js/` — never into a `cache/` folder, which is a symlink the installer creates (see [JavaScript](#javascript)). The second argument `true` marks the path as local (relative to the module asset root).
 
 {% hint style="info" %}
 `AssetProvider` is a **core** service you *consume* via `$this->assets`. You do not register it from your module. The providers you register yourself are the view and Volt providers — see [Providers](#providers).
@@ -407,7 +407,7 @@ Key points, all verified against `Extensions/EXAMPLES/WebInterface/ModuleExample
 
 ## JavaScript
 
-Module JS is authored in `public/assets/js/src/` as ES6 and compiled with Babel into `public/assets/js/cache/<UniqueID>/` (the path the controller attaches). The cabinet exposes globals you build against: `Form` (the form submission/validation engine loaded via `js/pbx/main/form.js`), `globalRootUrl`, `globalTranslate` (your translation keys), and `PbxApi` (the REST client for core endpoints).
+Module JS is authored in `public/assets/js/src/` as ES6 and compiled with Babel into `public/assets/js/` — one directory up from the sources. The `js/cache/<UniqueID>/` path the controller attaches is the **served** path: on install `PbxExtensionUtils::createAssetsSymlinks()` symlinks your `public/assets/js` directory to `sites/admin-cabinet/assets/js/cache/<UniqueID>`. You never create a `cache/` directory inside your module. The cabinet exposes globals you build against: `Form` (the form submission/validation engine loaded via `js/pbx/main/form.js`), `globalRootUrl`, `globalTranslate` (your translation keys), and `PbxApi` (the REST client for core endpoints).
 
 A modify script wires Fomantic UI components, then hands the form to the global `Form` object:
 
@@ -477,12 +477,18 @@ The contract with the global `Form` object (verified in `Extensions/EXAMPLES/Web
 For calls to core services (status, restart, reading PBX state, etc.) use the global `PbxApi` client rather than hand-rolling fetches; it knows the cabinet's CSRF and endpoint conventions.
 
 {% hint style="info" %}
-Compile JS sources before packaging. The cabinet only ever serves the compiled file under `js/cache/<UniqueID>/`; the `src/` file is never loaded directly.
+Compile JS sources before packaging. The cabinet only ever serves the compiled file from `public/assets/js/` (as `js/cache/<UniqueID>/...`); the `src/` file is never loaded directly.
 {% endhint %}
 
 ## Providers
 
-For Volt views to resolve, a module registers two service providers in its `App/Module.php`. Each provider implements `Phalcon\Di\ServiceProviderInterface`.
+{% hint style="warning" %}
+**Most modules need no providers at all.** Volt views resolve without any DI wiring: on install `PbxExtensionUtils::createViewSymlinks()` symlinks your `App/Views` directory into `src/AdminCabinet/Views/Modules/<UniqueID>`, which is exactly what `$this->view->pick('Modules/<UniqueID>/...')` resolves against. The canonical example `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/` has an **empty** `App/Providers/` directory and registers nothing but the dispatcher — and its views render fine.
+
+Register the two providers below only when you need to take over view resolution or extend the Volt compiler (custom Volt functions, a module-specific cache directory). `Extensions/ModuleUsersUI/` does this because it adds an `isAllowed` Volt helper for ACL-driven rendering.
+{% endhint %}
+
+To take that control, a module registers two service providers in its `App/Module.php`. Each provider implements `Phalcon\Di\ServiceProviderInterface`.
 
 ### ViewProvider
 
@@ -572,7 +578,7 @@ See the full production version (including the `isAllowed` Volt helper) in `Exte
 
 ### Registering providers in App/Module.php
 
-`App/Module.php` implements `Phalcon\Mvc\ModuleDefinitionInterface`. Register the providers and set the dispatcher's default namespace to your controllers:
+`App/Module.php` implements `Phalcon\Mvc\ModuleDefinitionInterface`. Setting the dispatcher's default namespace to your controllers is the **only** mandatory part; add the `register()` calls just if you actually wrote the providers above:
 
 {% code title="App/Module.php" %}
 ```php

@@ -49,10 +49,12 @@ facts about it matter when you write fragments:
    `; ***** BEGIN BY <moduleUniqueId>` / `; ***** END BY <moduleUniqueId>`
    comments by `confBlockWithComments()`, so your dialplan is easy to spot in the
    generated file. (There is also a `same`-prefix auto-tab in
-   `hookModulesMethod()`, but it can only fire for core config classes: because
-   the `BEGIN BY` marker is prepended first, an external fragment never starts
-   with `same`. Always emit your own leading tab — as the examples below do — to
-   attach a `same =>` line to the preceding `exten`.)
+   `hookModulesMethod()`, but it can only fire for core config classes: they have
+   no `moduleUniqueId`, so `confBlockWithComments()` merely `rtrim()`s their
+   fragment, whereas an external fragment is prefixed with the `BEGIN BY` marker
+   and can therefore never start with `same`. Always emit your own leading tab —
+   as the examples below do — to attach a `same =>` line to the preceding
+   `exten`.)
 
 {% hint style="info" %}
 Hooks return raw dialplan text. Terminate lines with `PHP_EOL`. Do not write the
@@ -84,9 +86,13 @@ of the same fragment-return family, but keep the target file in mind.
 ## Add your own context
 
 `extensionGenContexts()` returns one or more complete `[context]` blocks. This is
-where you put dialplan that other contexts will `include` or `Goto`. Start the
-fragment with a leading `PHP_EOL` so your block does not glue onto the previous
-module's output.
+where you put dialplan that other contexts will `include`, `Goto` or `Gosub`
+into. Start the fragment with a leading `PHP_EOL` so your block does not glue
+onto the previous module's output.
+
+The screening context below is a **subroutine**: it is entered by an explicit
+`Gosub(module-black-list,s,1)` from the incoming-route hook, never by an
+`include`. That is why it can safely use the `s` extension.
 
 {% code title="Extensions/ModuleBlackList/Lib/BlackListConf.php" %}
 ```php
@@ -111,7 +117,7 @@ class BlackListConf extends ConfigClass
         }
 
         $conf  = PHP_EOL . '[module-black-list]' . PHP_EOL;
-        $conf .= 'exten => _X!,1,NoOp(Check ${CALLERID(num)} against blacklist)' . PHP_EOL . "\t";
+        $conf .= 'exten => s,1,NoOp(Check ${CALLERID(num)} against blacklist)' . PHP_EOL . "\t";
         $conf .= 'same => n,AGI(' . $this->moduleDir . '/agi-bin/BlackListCheck.php)' . PHP_EOL . "\t";
         $conf .= 'same => n,ExecIf($["${BLACKLISTED}" == "1"]?Hangup(21))' . PHP_EOL . "\t";
         $conf .= 'same => n,Return()' . PHP_EOL;
@@ -136,14 +142,42 @@ configured extension into an AGI), and in
 ## Wire the context into `[internal]`
 
 A context defined with `extensionGenContexts()` is inert until something jumps to
-it. The usual entry point is the `[internal]` context, where extensions and
-features live. `getIncludeInternal()` adds an `include =>` line so calls fall
-through into your context.
+it. To make a **feature code** dialable from a handset, put that code in its own
+context and pull it into `[internal]` with `getIncludeInternal()`.
+
+{% hint style="danger" %}
+**Never `include` a context that contains bare-digit or wildcard extensions into
+`[internal]`.** `[internal]` is where real internal numbers live, and an included
+`_X!` / `_XXX` / `200` pattern will shadow or collide with them. This is not
+theoretical: a module that included a context whose menu started at digit `1`
+broke a real queue numbered `1` on a live PBX — dialing the queue landed in the
+module menu instead.
+
+The safe shape is the one every real module uses: the included context holds
+**only** the star-prefixed feature code, and anything that matches broadly lives
+in a separate context entered by an explicit `Gosub`/`Goto`. Compare
+`Extensions/ModuleSmartIVR/Lib/SmartIVRConf.php:29-57` — `getIncludeInternal()`
+returns `include => module_smartivr` and the context contains exactly one
+`exten => <configured extension>` line, nothing wildcard.
+{% endhint %}
 
 {% code title="Extensions/ModuleBlackList/Lib/BlackListConf.php" %}
 ```php
     /**
-     * Pull the module-black-list context into [internal].
+     * Publish ONLY the *32 feature code in its own context, then include it.
+     * The wildcard screening logic stays in [module-black-list], which is
+     * entered by Gosub from the incoming-route hook and is never included.
+     */
+    public function extensionGenContextsMenu(): string
+    {
+        return PHP_EOL . '[module-black-list-menu]' . PHP_EOL
+             . 'exten => *32,1,NoOp(Add last caller to blacklist)' . PHP_EOL . "\t"
+             . 'same => n,AGI(' . $this->moduleDir . '/agi-bin/BlackListAdd.php)' . PHP_EOL . "\t"
+             . 'same => n,Hangup()' . PHP_EOL;
+    }
+
+    /**
+     * Pull only the feature-code context into [internal].
      */
     public function getIncludeInternal(): string
     {
@@ -151,10 +185,14 @@ through into your context.
             return '';
         }
 
-        return 'include => module-black-list' . PHP_EOL;
+        return 'include => module-black-list-menu' . PHP_EOL;
     }
 ```
 {% endcode %}
+
+(`extensionGenContextsMenu()` is not a hook — it is a private helper whose output
+you append to what `extensionGenContexts()` returns. Only the method names listed
+in `AsteriskConfigInterface` are called by the Core.)
 
 `getIncludeInternal()` is called **before** `extensionGenInternal()` (see
 `InternalContexts::generateAdditionalModulesInternalContext()`), so all module
@@ -253,7 +291,10 @@ generates conference-room hints for `[internal-hints]`.
 
 `getFeatureMap()` adds entries to the `[featuremap]` section of **`features.conf`**
 (via `FeaturesConf`), registering an in-call feature code that Asterisk's
-`DYNAMIC_FEATURES` machinery can invoke. Return `code => featurename` lines.
+`DYNAMIC_FEATURES` machinery can invoke. Return `featurename => code` lines —
+the feature name is on the **left**, the DTMF code on the right, exactly as in
+`ResParkingConf::getFeatureMap()`, which returns
+`"parkcall => $this->ParkingFeature"` (`Core/src/Core/Asterisk/Configs/ResParkingConf.php:252-255`).
 
 {% code title="Extensions/ModuleBlackList/Lib/BlackListConf.php" %}
 ```php

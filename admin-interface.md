@@ -19,8 +19,8 @@ how the admin cabinet sits next to the other MikoPBX applications, see [Core](co
 
 {% hint style="info" %}
 Throughout the docs we thread one fictional module, **ModuleBlackList** (config class
-`BlackListConf`, model `BlackListNumbers`, table `m_BlackListNumbers`, JS file
-`module-black-list.js`). On this page `BlackListConf` is the class that implements the UI extension
+`BlackListConf`, model `BlackListNumbers`, table `m_BlackListNumbers`, JS files named per
+action — `module-black-list-index.js`, `module-black-list-modify.js`). On this page `BlackListConf` is the class that implements the UI extension
 hooks. Every pattern is also anchored to a real, shipping module under `Extensions/`.
 {% endhint %}
 
@@ -420,7 +420,8 @@ class Module implements ModuleDefinitionInterface
   admin cabinet calls these methods through `PBXConfModulesProvider::hookModulesMethod()` at the
   lifecycle points shown above.
 
-The four UI extension hooks, with their **verified** signatures from
+`WebUIConfigInterface` declares eleven methods in total; the four that build the page are
+listed below, with their **verified** signatures from
 `Core/src/Modules/Config/WebUIConfigInterface.php` and the constants used to invoke them:
 
 | Hook method | Constant | Fired from |
@@ -429,6 +430,11 @@ The four UI extension hooks, with their **verified** signatures from
 | `onAfterRoutesPrepared(Router $router): void` | `ON_AFTER_ROUTES_PREPARED` | `Common\Providers\RouterProvider` |
 | `onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher): void` | `ON_AFTER_ASSETS_PREPARED` | `AssetProvider` |
 | `onVoltBlockCompile(string $controller, string $blockName, View $view): string` | `ON_VOLT_BLOCK_COMPILE` | `VoltProvider` (Volt block compilation) |
+
+The remaining seven cover authentication (`authenticateUser`,
+`getPasskeySessionData`), permissions (`onAfterACLPrepared`,
+`onGetControllerPermissions`), form building (`onBeforeFormInitialize`) and the
+request lifecycle (`onBeforeExecuteRoute`, `onAfterExecuteRoute`).
 
 ### Sidebar menu — `onBeforeHeaderMenuShow`
 
@@ -486,11 +492,26 @@ public function onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher): 
 {
     if ($dispatcher->getControllerName() === 'ModuleBlackList') {
         $assets->collection(AssetProvider::FOOTER_JS)
-            ->addJs("js/cache/{$this->moduleUniqueId}/module-black-list.js", true);
+            ->addJs("js/cache/{$this->moduleUniqueId}/module-black-list-index.js", true);
     }
 }
 ```
 {% endcode %}
+
+{% hint style="info" %}
+**Asset path and file naming.** `js/cache/<moduleUniqueID>/` is not a build output
+directory — it is a symlink the installer creates
+(`PbxExtensionUtils::createAssetsSymlinks()`) from
+`sites/admin-cabinet/assets/js/cache/<moduleUniqueID>` to your module's
+`public/assets/js`. Babel compiles into `public/assets/js/`; never emit into any
+`cache/` path yourself. The same is done for `css/cache/…` and `img/cache/…`.
+
+File names are **per action**: `module-<kebab-uniqueid>-<action>.js`. When you inject
+onto a *core* page the name includes that page's controller and action — the shipping
+example is `ModuleUsersUI`, which adds
+`js/cache/ModuleUsersUI/module-users-ui-extensions-modify.js` on `Extensions:modify`
+(`Extensions/ModuleUsersUI/Lib/UsersUIConf.php:394`).
+{% endhint %}
 
 ### Volt block override — `onVoltBlockCompile`
 

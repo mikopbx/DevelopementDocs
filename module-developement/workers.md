@@ -163,8 +163,17 @@ Key APIs, all confirmed against `src/Core/System/BeanstalkClient.php`:
   for a tube. Subscribe to **both** your work tube and `makePingTubeName(self::class)`.
 * `wait(float $timeout = 5): void` — blocks for the next reserved job and dispatches it to the
   matching callback. Loop on it.
-* Inside a callback, `BeanstalkClient::getBody(): string` returns the raw payload and
+* Inside a callback, `BeanstalkClient::getBody()` returns the payload and
   `reply(string $response): void` sends a response back to a requester that used `request()`.
+
+{% hint style="warning" %}
+`getBody()` is declared `: string`, but what you get back depends on how the message was
+published. `publish()` runs the payload through `serialize()`, and `wait()` returns the raw
+string **only when it parses as JSON** — otherwise it hands the callback the `unserialize()`d
+value. So the `json_decode($message->getBody(), true)` idiom above works when the publisher
+sent a JSON string (as the example module does), and breaks if the publisher passed an array
+straight to `publish()`. Agree on one payload format across both ends of the tube.
+{% endhint %}
 
 `makePingTubeName(string $workerClassName): string` (on `WorkerBase`) derives the ping tube
 name from the class name. The supervisor's `CHECK_BY_BEANSTALK` health check sends a message to
@@ -260,6 +269,20 @@ Key APIs, confirmed against `src/Core/Asterisk/AsteriskManager.php` and `src/Cor
   matches every event.
 * `waitUserEvent(bool $allow_timeout = false): array` — block for the next event; returns an
   empty array `[]` on timeout/disconnect — your loop treats that as the signal to reconnect.
+
+{% hint style="warning" %}
+**`waitUserEvent()` does not return once per event.** Its body is a
+`do { … } while (!$timeout)` loop that reads the socket and dispatches each
+event to your registered handlers *itself*; it only returns to you when a ping
+fails — that is, when the connection is dead. So the code inside your
+`while (true)` loop runs **only on disconnect**, never per event.
+
+The consequence bites when you put periodic work there — pruning a correlation
+map, flushing a buffer, refreshing a token. On a healthy PBX that code never
+executes, and the bug is invisible in testing precisely because everything is
+working. All per-event work belongs in the event handler; use
+`setOnIdleCallback()` for periodic work.
+{% endhint %}
 * `sendRequestTimeout(string $action, array $parameters = []): array` — used here to add AMI
   `Filter` directives. **Without explicit filters AMI only delivers login/ping responses**, so
   you must add a filter for each event class you want.
@@ -399,8 +422,11 @@ Three things matter here:
 3. **`CriticalErrorsHandler::handleExceptionWithSyslog($e)`** in a `catch (\Throwable)` — any
    fatal during startup is logged to syslog (and Sentry) instead of dying silently.
 
-The `count($argv) > 1` guard ensures the loop only runs when the file is executed with the
-`start` argument, not when it is merely autoloaded as a class definition.
+The `count($argv) > 1` guard ensures the worker only starts when the file is executed as a
+script **with at least one argument**, not when it is merely autoloaded as a class
+definition. Note that this inline form does not inspect *which* argument was passed — any
+argument starts it. Only `WorkerBase::startWorker()` actually checks for the literal
+`start` (`$argv[1] === 'start'`); the supervisor passes `start` either way.
 
 {% hint style="info" %}
 `WorkerBase::startWorker(array $argv, bool $setProcName = true)` performs the same sequence

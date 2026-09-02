@@ -312,8 +312,9 @@ HTTP request
    immediately and the client receives the result later over an nchan channel.
 4. **Poll for response.** Otherwise it polls `api:response:{request_id}`
    (`WorkerApiCommands::REDIS_API_RESPONSE_PREFIX`) with a graduated backoff:
-   10 ms for the first second, then 50 ms, then 100 ms, then 250 ms, until the
-   `maxTimeout` (minimum 30 s) elapses. On arrival it deletes the response key
+   10 ms for the first second, 50 ms for the next 4 s, 100 ms for the next 10 s,
+   then 250 ms for the remainder, until the `maxTimeout` (minimum 30 s) elapses.
+   On arrival it deletes the response key
    and maps the result to an HTTP status code (200, 201, 422 for validation
    failures, 409 for conflicts, etc., honouring an explicit `httpCode` if the
    Action set one).
@@ -341,9 +342,11 @@ dequeued job it:
 
 ### Routing inside the worker: ManagementProcessor → Action
 
-Each resource ships a `{Resource}ManagementProcessor` whose static `callback()`
-dispatches the message's `action` to a dedicated Action class — typically with a
-PHP 8.4 `enum` + `match`:
+Each resource ships a Processor whose static `callback()` dispatches the message's
+`action` to a dedicated Action class — typically with a PHP 8.4 `enum` + `match`.
+Core resources name the class `{Resource}ManagementProcessor`; **modules** name it
+plainly `Processor` inside the resource folder and point `#[ApiResource(processor:
+Processor::class)]` at it. The example below uses the Core naming:
 
 ```php
 enum NumbersAction: string {
@@ -381,20 +384,31 @@ Worker Actions run in a CLI process and cannot reach Phalcon's `Request`, so
 `BaseController::prepareRequestMessage()` pre-extracts a **filtered** subset of
 inbound headers into the message under `httpHeaders` (lowercased keys). The
 policy is in `PBXCoreREST/Http/ForwardedHeaderFilter.php`: `Authorization`,
-`Cookie`, `Set-Cookie`, `Proxy-Authorization` and the `Authentication-*` family
-are stripped unconditionally; a public-safe allow-list (`X-Forwarded-*`,
-`X-Real-IP`, `User-Agent`, `Referer`, `Origin`, `Host`, `Accept-Language`) and
-the reserved prefixes `X-Mikopbx-*` and `X-Module-*` pass through. An Action
-reads them from its second argument:
+`Cookie`, `Set-Cookie`, `Proxy-Authorization`, **`X-Api-Key`** and the
+`Authentication-*` prefix family are stripped unconditionally (`X-Api-Key` because
+`getBearerToken()` accepts it as a credential). The public-safe allow-list is an
+explicit enumeration — `X-Forwarded-For`, `X-Forwarded-Proto`, `X-Forwarded-Host`,
+`X-Forwarded-Port`, `X-Real-IP`, `User-Agent`, `Referer`, `Origin`, `Host`,
+`Accept-Language` — not an `X-Forwarded-*` wildcard; the reserved prefixes
+`X-Mikopbx-*` and `X-Module-*` also pass through. Surviving values are lowercased
+by key and truncated at 1024 bytes.
+
+Actions receive the bag only when the Processor forwards it — there is no automatic
+second parameter. The one Core action that takes it declares:
 
 ```php
-public static function main(array $data, array $httpHeaders = []): PBXApiResult
+// PBXCoreREST/Lib/System/CheckClientIpVisibilityAction.php
+public static function main(array $sessionContext = [], array $httpHeaders = []): PBXApiResult
 {
     $ua  = $httpHeaders['user-agent'] ?? '';
     $xff = $httpHeaders['x-forwarded-for'] ?? '';
     // ...
 }
 ```
+
+Its Processor passes `$request['sessionContext'] ?? []` and
+`$request['httpHeaders'] ?? []` explicitly. Every other action — including all of
+the reference module's — uses the plain single-argument `main(array $data)` form.
 
 A module may introduce its own forwarded header simply by naming it under
 `X-Module-<YourModule>-`; no core edits are required.
@@ -403,8 +417,13 @@ A module may introduce its own forwarded header simply by naming it under
 
 Per-resource parameter definitions live in one place — a `DataStructure` class
 extending `AbstractDataStructure`. It declares every request/response field with
-its type, validation rules, sanitization rule and OpenAPI example, and provides
-`createFromModel()` to shape responses. The `#[ApiParameterRef]` attributes on
+its type, validation rules, sanitization rule and OpenAPI example. By convention
+each resource's DataStructure also exposes a `createFromModel()` that shapes a
+model row into the response payload — that one is **not** inherited: it is a
+per-resource method you write yourself (`AbstractDataStructure` supplies
+`getSanitizationRules()`, `applyDefaults()`, `validateInputData()` and the
+`createFromSchema()`/`createForList()` builders, but no `createFromModel()`). The
+`#[ApiParameterRef]` attributes on
 the controller reference these definitions by name, so docs, validation,
 sanitization and the OpenAPI schema never drift apart.
 
@@ -444,14 +463,28 @@ phases (see the Core abstraction in
 `.../Tasks/Actions/SaveRecordAction.php`):
 
 1. **Sanitize** input per the DataStructure rules.
-2. **Validate required** fields — fail fast on missing ones.
-3. **Determine operation** — new vs. existing record.
+2. **Determine operation** — new vs. existing record, and which HTTP verb is in
+   play (`$data['httpMethod']`). This must come first, because the next phase
+   depends on the verb.
+3. **Validate required** fields — for POST and PUT only. PATCH must skip this: a
+   partial body legitimately omits everything it does not intend to change.
 4. **Apply defaults** — on CREATE only (never on update/patch).
 5. **Schema validation** — after defaults are applied.
-6. **Save** inside `executeInTransaction()`; for PATCH, only `isset()` fields are
-   touched.
-7. **Response** — build the result via `DataStructure::createFromModel()` and set
+6. **Save** inside `executeInTransaction()`; for PATCH, only fields actually
+   present in the payload are written (`isset()` / `array_key_exists()`).
+7. **Response** — build the result via the resource's `createFromModel()` and set
    HTTP 201 (create) or 200 (update/patch).
+
+{% hint style="warning" %}
+Some older Core actions — `PBXCoreREST/Lib/ApiKeys/SaveRecordAction.php` is the
+clearest example — run phases 2 and 3 the other way round and call
+`validateRequiredFields()` **unconditionally**. That is the pre-PATCH shape: because
+the check knows nothing about the HTTP verb, any PATCH that omits a mandatory field
+is rejected with 422 even though phase 6 would have preserved the untouched columns
+perfectly well. Do not copy it. Follow the order above, which is what the reference
+module implements — see
+`Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/Lib/RestAPI/Tasks/Actions/SaveRecordAction.php`.
+{% endhint %}
 
 ## Response envelope
 
@@ -468,7 +501,7 @@ Worker Actions return a `PBXApiResult` (`PBXCoreREST/Lib/PBXApiResult.php`). Its
   ],
   "messages": [],
   "function": "getList",
-  "processor": "Modules\\ModuleBlackList\\Lib\\RestAPI\\Numbers\\NumbersManagementProcessor",
+  "processor": "Modules\\ModuleBlackList\\Lib\\RestAPI\\Numbers\\Processor",
   "pid": 16729,
   "meta": {
     "timestamp": "2025-01-25T08:23:02-03:00",

@@ -14,14 +14,15 @@ request time and resolves keys on the server (Volt, models) and in the browser
 
 Throughout this page the running example is **ModuleBlackList** (config class
 `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table
-`m_ModuleBlackList_BlackListNumbers`, front-end `module-black-list.js`). Its translation keys use
+`m_ModuleBlackList_BlackListNumbers`, front-end assets named per action —
+`module-black-list-index.js`, `module-black-list-modify.js`). Its translation keys use
 the prefix `module_black_list_`.
 
 {% hint style="info" %}
 The single source of truth is **Russian** (`ru.php`). Developers add and edit keys
 **only** in `ru.php`; every other locale is produced from it by the
-`/translations` workflow (see below). This is enforced by the MikoPBX translation
-skill at `Core/.claude/skills/translations/SKILL.md`.
+`/translations` workflow (see below). This is enforced by the MikoPBX `translations`
+skill from [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills).
 {% endhint %}
 
 ## The `Messages/` directory
@@ -74,10 +75,12 @@ return [
     // module UniqueID, %represent% is filled with the linked module name
     'repModuleBlackList'                    => 'Черный список - %represent%',
 
-    // Module title in the left menu (mo_Module<UniqueID>)
-    'mo_ModuleModuleBlackList'              => 'Черный список',
+    // Model title used by getRepresent() — mo_<UniqueID>, single "Module"
+    'mo_ModuleBlackList'                    => 'Черный список',
 
-    // Page chrome
+    // Page chrome. BreadcrumbModuleBlackList is ALSO the left-menu caption:
+    // PbxExtensionSetupBase::addToSidebar() stores "Breadcrumb$moduleUniqueID"
+    // as the menu item caption.
     'BreadcrumbModuleBlackList'             => 'Черный список номеров',
     'SubHeaderModuleBlackList'              => 'Блокировка входящих вызовов по номеру',
 
@@ -101,7 +104,7 @@ The matching `en.php` has identical keys, with the values translated:
 <?php
 return [
     'repModuleBlackList'                    => 'Black list - %represent%',
-    'mo_ModuleModuleBlackList'              => 'Black list',
+    'mo_ModuleBlackList'                    => 'Black list',
     'BreadcrumbModuleBlackList'             => 'Black list of numbers',
     'SubHeaderModuleBlackList'              => 'Block inbound calls by number',
     'module_black_list_AddNewRecord'        => 'Add number',
@@ -225,6 +228,12 @@ Use the placeholder spelled **`%represent%`** — that is the name the Core pass
 `ModuleUsersGroups`) contain the misspelling `%repesent%` and even leftover demo
 text like "Module amoCRM"; do **not** copy those into your module. Match the
 placeholder name the Core supplies, or the substitution will not happen.
+
+The same starter files also ship the model-title key with a doubled prefix —
+`mo_ModuleModuleTemplate`, `mo_ModuleModuleUsersGroups`. The Core reads
+`mo_` **+ moduleUniqueID** (`ModulesModelsBase::getRepresent()`, line 75), i.e.
+`mo_ModuleTemplate` / `mo_ModuleUsersGroups`, so the doubled keys are dead
+weight and the key that is actually looked up is missing. Use the single form.
 {% endhint %}
 
 ## Key naming conventions
@@ -232,8 +241,8 @@ placeholder name the Core supplies, or the substitution will not happen.
 | Key shape                          | Used for                                  | Example                                   |
 | ---------------------------------- | ----------------------------------------- | ----------------------------------------- |
 | `module_{feature}_{Name}`          | UI labels, buttons, validation prompts    | `module_black_list_AddNewRecord`          |
-| `mo_Module{UniqueID}`              | Module name in the left navigation menu   | `mo_ModuleModuleBlackList`                |
-| `Breadcrumb{Page}`                 | Breadcrumb / page heading                 | `BreadcrumbModuleBlackList`               |
+| `mo_{ModuleUniqueID}`              | Model title used by `getRepresent()`      | `mo_ModuleBlackList`                      |
+| `Breadcrumb{Page}`                 | Breadcrumb / page heading — and the left-menu caption for `Breadcrumb{ModuleUniqueID}` | `BreadcrumbModuleBlackList` |
 | `SubHeader{Page}`                  | Sub-header descriptive text               | `SubHeaderModuleBlackList`                |
 | `rep{ModuleUniqueID}`              | Model representation (with `%represent%`) | `repModuleBlackList`                      |
 | `module_{feature}_Validate{...}`   | Validation messages read from JS          | `module_black_list_ValidateNumberEmpty`   |
@@ -265,7 +274,7 @@ languages the UI offers — for what is actually rendered, trust
 `Messages/<code>.php` file for any code present in that constant.
 
 The end-to-end process is owned by the `/translations` skill
-(`Core/.claude/skills/translations/SKILL.md`):
+(`skills/translations/SKILL.md` in [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills)):
 
 1. **Collect keys in `ru.php` first.** Add or change every key in Russian only,
    with the correct `module_{feature}_` prefix. Russian is the baseline against
@@ -297,7 +306,7 @@ php -r "echo count(include 'Extensions/ModuleBlackList/Messages/ru.php');"
 
 # Compare counts across locales
 for lang in en de es fr; do
-  echo "$lang: $(php -r "echo count(include "Extensions/ModuleBlackList/Messages/$lang.php");")"
+  echo "$lang: $(php -r "echo count(include 'Extensions/ModuleBlackList/Messages/$lang.php');")"
 done
 
 # Syntax check
@@ -334,7 +343,11 @@ You do not call any loader yourself — `MessagesProvider` in
 3. Merges **English** strings from every module's `Messages/` (so an untranslated
    key always has *some* value).
 4. Merges the active language's strings from every module's `Messages/`.
-5. Caches the result (`ManagedCache`, key `LocalisationArray:<versionHash>:<lang>`).
+5. Merges the static language-name array from `LanguageProvider`
+   (the `ex_English`, `ex_Russian`, … keys).
+6. Caches the result (`ManagedCache`, key `LocalisationArray:<versionHash>:<lang>`),
+   but only for web requests — under CLI (`php_sapi_name() === 'cli'`) no cache
+   key is built and the array is rebuilt on every run.
 
 Because step 3 always loads module English first, **`en.php` is your safety net**:
 any key missing from a locale falls back to English rather than showing a raw key.
@@ -342,8 +355,25 @@ Keep `en.php` complete.
 
 {% hint style="warning" %}
 Translations are **cached**. After editing `Messages/*.php` you must clear the
-cache before the change appears — flush Redis (`redis-cli FLUSHDB`) or restart the
-container — and hard-refresh the browser (`Ctrl+Shift+R` / `Cmd+Shift+R`).
+cache before the change appears, then hard-refresh the browser
+(`Ctrl+Shift+R` / `Cmd+Shift+R`).
+
+The managed cache lives in **Redis database 4**
+(`ManagedCacheProvider::DATABASE_INDEX`), not database 0, so you must pass `-n 4` —
+a bare `redis-cli FLUSHDB` targets database 0 and clears nothing:
+
+```bash
+# Drop just the translation arrays
+redis-cli -n 4 --scan --pattern '_PH_MANAGED_CACHE:*LocalisationArray*' | \
+  xargs -r redis-cli -n 4 DEL
+
+# …or flush the whole managed cache
+redis-cli -n 4 FLUSHDB
+```
+
+The cached array is also keyed on the module version hash, so bumping the module
+version invalidates it. Restarting `php-fpm` (`monit restart php-fpm`) does **not**
+clear the cache — the entries live in Redis, not in the PHP process.
 {% endhint %}
 
 ## Checklist before shipping

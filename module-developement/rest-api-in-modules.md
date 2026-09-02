@@ -481,11 +481,26 @@ order for create/update/patch in `SaveRecordAction`, documented in
 (`sanitizeInputData()`, `validateRequiredFields()`, `applyDefaults()`,
 `validateRecordExistence()`, `executeInTransaction()`):
 
+{% hint style="warning" %}
+**`applyDefaults()` is two different methods.**
+`AbstractSaveRecordAction::applyDefaults(array $data, array $defaults)` is
+protected and takes **two** arguments;
+`AbstractDataStructure::applyDefaults(array $data)` is public and takes **one**.
+The example below calls the DataStructure one —
+`DataStructure::applyDefaults($clean)`. Writing `self::applyDefaults($clean)`
+inside your Action resolves to the inherited two-argument version and fails with
+`ArgumentCountError`.
+{% endhint %}
+
 1. **Sanitize** — run `DataStructure::getSanitizationRules()` over the input.
    Never trust raw user data.
-2. **Validate required** — fail fast on missing mandatory fields.
-3. **Determine operation** — new vs existing record (presence of `id`). For
-   PUT/PATCH against a missing record, `validateRecordExistence()` returns a 404.
+2. **Determine operation** — new vs existing record (presence of `id`), and which
+   HTTP verb is in play (`$data['httpMethod']`). This must come *before* any
+   verb-dependent validation. For PUT/PATCH against a missing record,
+   `validateRecordExistence()` returns a 404.
+3. **Validate required** — fail fast on missing mandatory fields, **per verb**.
+   POST and PUT require the mandatory fields; PATCH must not, because a partial
+   body legitimately omits everything it does not intend to change.
 4. **Apply defaults** — **CREATE only**. Applying defaults on update/patch would
    clobber the caller's existing values.
 5. **Schema validate** — validate the complete dataset *after* defaults.
@@ -497,13 +512,29 @@ order for create/update/patch in `SaveRecordAction`, documented in
    200 on update).
 
 {% hint style="warning" %}
-The two phases that are genuinely conditional on the operation are **Phase 4
-(defaults are CREATE-only)** and **Phase 6 (PATCH writes only present fields)**.
-A real example of this ordering is
-`Core/src/PBXCoreREST/Lib/ApiKeys/SaveRecordAction.php` — study its phase
-comments and its `array_key_exists()` / `isset()` guards for PATCH support.
-Whether *required-field* validation applies on a given verb is decided by your
-own validation rules, not by the framework; design them per operation.
+Three phases are conditional on the operation: **Phase 3 (required fields are
+enforced for POST/PUT but not PATCH)**, **Phase 4 (defaults are CREATE-only)**
+and **Phase 6 (PATCH writes only present fields)**. The working example of this
+ordering is the reference module's
+`Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/Lib/RestAPI/Tasks/Actions/SaveRecordAction.php`
+— study its phase comments, its `$httpMethod !== 'PATCH'` gate and its
+`array_key_exists()` / `isset()` guards for PATCH support.
+
+Do **not** copy `Core/src/PBXCoreREST/Lib/ApiKeys/SaveRecordAction.php` for this:
+it predates PATCH support, runs phases 2 and 3 in the opposite order, and calls
+`validateRequiredFields()` unconditionally — so a PATCH that omits a mandatory
+field is rejected with 422.
+
+Phase 3 is the one that is easy to get wrong, and the framework will not catch
+it: `validateRequiredFields()` knows nothing about the verb, so an unconditional
+`if (empty($clean['title']))` guard makes every PATCH fail with 422 even though
+Phase 6 would have preserved the untouched columns perfectly well. Gate it:
+
+```php
+if ($httpMethod !== 'PATCH' && empty($clean['title'])) {
+    // ... 422
+}
+```
 {% endhint %}
 
 ### The reference SaveRecordAction is a full, DB-backed example
@@ -528,6 +559,7 @@ declare(strict_types=1);
 
 namespace Modules\ModuleBlackList\Lib\RestAPI\Numbers\Actions;
 
+use MikoPBX\Common\Providers\TranslationProvider;
 use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
 use MikoPBX\PBXCoreREST\Lib\Common\AbstractSaveRecordAction;
 use Modules\ModuleBlackList\Models\BlackListNumbers;
@@ -557,14 +589,10 @@ class SaveRecordAction extends AbstractSaveRecordAction
             $clean['id'] = $data['id'];
         }
 
-        // PHASE 2: VALIDATE REQUIRED
-        if (empty($clean['number'])) {
-            $result->messages['error'][] = 'number is required';
-            $result->httpCode = 422;
-            return $result;
-        }
-
-        // PHASE 3: DETERMINE OPERATION
+        // PHASE 2: DETERMINE OPERATION
+        // Resolve the verb and the target record BEFORE validating, because
+        // required-field rules differ per verb (see PHASE 3).
+        $httpMethod  = strtoupper((string)($data['httpMethod'] ?? 'POST'));
         $isNewRecord = empty($clean['id']);
         $record = $isNewRecord
             ? new BlackListNumbers()
@@ -573,6 +601,19 @@ class SaveRecordAction extends AbstractSaveRecordAction
         if (!$isNewRecord && $record === null) {
             $result->messages['error'][] = 'Record not found';
             $result->httpCode = 404;
+            return $result;
+        }
+
+        // PHASE 3: VALIDATE REQUIRED (POST/PUT only — PATCH is partial)
+        // Emit a translation KEY through TranslationProvider, not a raw key and
+        // not a hardcoded English string: module Messages/*.php catalogs are
+        // merged into the global dictionary, so the caller gets the message in
+        // the PBX language.
+        if ($httpMethod !== 'PATCH' && empty($clean['number'])) {
+            $result->messages['error'][] = TranslationProvider::translate(
+                'module_black_list_number_required'
+            );
+            $result->httpCode = 422;
             return $result;
         }
 
@@ -621,8 +662,20 @@ The action extends `AbstractSaveRecordAction`, so `createApiResult()`,
 `sanitizeInputData()`, `executeInTransaction()` and `handleError()` are inherited
 helpers; `applyDefaults()` and `validateInputData()` are called statically on the
 `DataStructure` (they live on `AbstractDataStructure`). Use these rather than
-rolling your own — `Core/src/PBXCoreREST/Lib/ApiKeys/SaveRecordAction.php` is the
-canonical implementation to copy. For model and migration details (the
+rolling your own — the reference module's
+`Tasks/Actions/SaveRecordAction.php` is the implementation to copy.
+
+{% hint style="info" %}
+Emitting the error through `TranslationProvider::translate()` above is a
+**recommendation**, not a description of what Core does today: Core's own
+`ApiKeys/SaveRecordAction.php` still hardcodes English strings such as
+`'Description is required'`. There is no core precedent to look for — the
+module-side benefit is real (module `Messages/*.php` catalogs are merged into the
+global dictionary, and `translate()` falls back to the raw key if lookup fails),
+so use it in new module code.
+{% endhint %}
+
+For model and migration details (the
 `BlackListNumbers` model and `m_BlackListNumbers` table) see
 [data-model.md](data-model.md).
 
@@ -663,6 +716,24 @@ curl http://127.0.0.1/pbxcore/api/v3/module-black-list/numbers
 Every response is the standard `PBXApiResult` envelope
 (`Core/src/PBXCoreREST/Lib/PBXApiResult.php`): `success` (bool), `data` (array),
 `messages` (`error`/`warning` lists), optional `httpCode` and `pagination`.
+
+{% hint style="warning" %}
+`httpCode` is optional, and that is a trap. When you return an unsuccessful
+`PBXApiResult` without setting it, the response goes out as **422 Unprocessable
+Entity** — regardless of the `#[ApiResponse(404, ...)]` attributes you declared
+on the controller. Attributes only describe the API; they do not set anything at
+runtime. Every early-return branch in a read or delete action must assign the
+status itself:
+
+```php
+$result->messages['error'][] = 'Record not found';
+$result->httpCode = 404;   // without this line the client sees 422
+```
+
+Use 400 for a malformed request (missing path segment), 404 for a well-formed
+request against a resource that does not exist, and 422 for a well-formed
+request whose payload fails validation.
+{% endhint %}
 
 ## Legacy patterns (for reference only)
 

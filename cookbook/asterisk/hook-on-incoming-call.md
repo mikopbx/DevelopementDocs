@@ -34,7 +34,7 @@ the route's destination; the "after dial" hook fires **after**.
 | `generateIncomingRoutBeforeDialPreSystem` | `(string $rout_number): string` | First, before MikoPBX's own system logic |
 | `generateIncomingRoutBeforeDialSystem` | `(string $rout_number): string` | After PreSystem, still before `Dial()` |
 | `generateIncomingRoutBeforeDial` | `(string $rout_number): string` | Last of the "before" group, immediately before `Dial()` — **the common choice** |
-| `generateIncomingRoutAfterDialContext` | `(string $uniqId): string` | After `Dial()` returns (post-call) |
+| `generateIncomingRoutAfterDialContext` | `(string $uniqId): string` | After the default action's `Dial()`/`Goto()` in the provider summary context |
 
 The exact ordering is visible in `IncomingContexts.php`:
 
@@ -48,8 +48,16 @@ $rout_data .= $this->hookModulesMethod(AsteriskConfigInterface::GENERATE_INCOMIN
 ```
 
 The `$rout_number` argument is the DID (the dialed inbound number) of the route being
-generated; `""` denotes the default/any route. `$uniqId` in the after-dial hook is the
-incoming route's unique identifier.
+generated; `""` denotes the default/any route.
+
+{% hint style="warning" %}
+The three "before dial" hooks fire once **per incoming route**. The after-dial
+hook does not. It is emitted from `createSummaryDialplanGoto()` inside the
+`[<provider>-incoming]` summary context, and only when a **default action** with
+a non-empty `extension` exists — a route set to *Playback* or *Busy* never
+reaches it. `$uniqId` there is the provider id, falling back to the incoming
+route's uniqid (`IncomingContexts::createSummaryDialplan()`, lines 532-565).
+{% endhint %}
 
 {% hint style="info" %}
 Use `$rout_number` to scope your logic. Returning an empty string for a route means
@@ -87,7 +95,7 @@ caller-ID rewriting — and the dialplan continues afterward.
 
 namespace Modules\ModuleBlackList\Lib;
 
-use MikoPBX\Core\System\PBX;
+use MikoPBX\Core\Asterisk\Configs\ExtensionsConf;
 use MikoPBX\Modules\Config\ConfigClass;
 
 /**
@@ -112,7 +120,7 @@ class BlackListConf extends ConfigClass
      */
     public function onAfterModuleEnable(): void
     {
-        PBX::dialplanReload();
+        ExtensionsConf::reload();
     }
 }
 ```

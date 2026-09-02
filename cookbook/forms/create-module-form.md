@@ -12,7 +12,8 @@ wires up validation and AJAX submission.
 
 The narrative uses a fictional module, **ModuleBlackList** (config class
 `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table
-`m_BlackListNumbers`, JS file `module-black-list.js`). Every pattern is anchored to
+`m_BlackListNumbers`, JS file `module-black-list-modify.js` — assets are named
+per **action**, not per module). Every pattern is anchored to
 the real, working example module that ships with MikoPBX:
 
 {% hint style="success" %}
@@ -143,8 +144,19 @@ and the model recipe in
 
 The form extends `MikoPBX\AdminCabinet\Forms\BaseForm` and overrides
 `initialize($entity = null, $options = null)`. **Always call
-`parent::initialize($entity, $options)` first** — it sets up the CSRF token and
-shared form configuration.
+`parent::initialize($entity, $options)` first.**
+
+`BaseForm::initialize()` (`Core/src/AdminCabinet/Forms/BaseForm.php:37-46`) is
+six lines long and does exactly two things: it substitutes a `stdClass` when
+`$entity` is `null` (so `$entity->field` never fatals on a fresh record), and it
+fires the `WebUIConfigInterface::ON_BEFORE_FORM_INITIALIZE` hook across every
+enabled module via `PBXConfModulesProvider::hookModulesMethod()`. It does **not**
+set up a CSRF token or any other shared configuration.
+
+That second point is the reason the call is mandatory rather than merely polite:
+your `parent::initialize()` call is the *only* thing that lets other modules
+extend your form (see [add a field to an existing form](add-field-into-existing-form.md)).
+Skip it and the extension point silently disappears.
 
 `BaseForm` provides three convenience helpers on top of the plain Phalcon
 elements:
@@ -522,7 +534,8 @@ standard contract is:
   this is where you assemble `settings.data`.
 * `Form.cbAfterSendForm()` — runs after a successful save.
 
-For **ModuleBlackList** this file would be `module-black-list.js`; the example uses
+For **ModuleBlackList** this file would be `module-black-list-modify.js` (the
+list page gets its own `module-black-list-index.js`); the example uses
 `module-example-form-modify.js`:
 
 {% code title="public/assets/js/src/module-example-form-modify.js" %}
@@ -602,9 +615,13 @@ $(document).ready(() => {
 
 {% hint style="warning" %}
 **Compile the source.** Files under `public/assets/js/src/` are written in modern
-ES and must be babel-compiled into `public/assets/js/`. MikoPBX loads the compiled
-copy (note `js/cache/.../module-example-form-modify.js` in `modifyAction`), never the
-`src/` file directly. Recompile after every edit.
+ES and must be babel-compiled into `public/assets/js/` — the parent directory,
+not a `cache` subfolder. The `js/cache/<moduleUniqueID>` path you see in
+`modifyAction` is a symlink the installer points straight at
+`<moduleDir>/public/assets/js`
+(`PbxExtensionUtils::createAssetsSymlinks()`, `Core/src/Modules/PbxExtensionUtils.php:105-114`),
+so the compiled file lands exactly where the URL resolves. MikoPBX never loads
+the `src/` file directly. Recompile after every edit.
 {% endhint %}
 
 The full client controller (with TextArea/Password rules, accordion, tab, and popup

@@ -64,6 +64,9 @@ silently discarded.
   block in `; ***** BEGIN BY <moduleUniqueId>` / `; ***** END BY <moduleUniqueId>`
   comment markers.
 
+* Any thrown exception is caught and logged via `CriticalErrorsHandler`; the
+  loop continues to the next module.
+
 Used by the entire **Asterisk config generation** category. Your hook must
 return a `string` of `.conf` text; returning anything else (or nothing) is
 treated as "no contribution."
@@ -78,7 +81,7 @@ treated as "no contribution."
 * Returns an **array keyed by `moduleUniqueId`**: `[ 'ModuleBlackList' => <your return> ]`.
   Empty returns are dropped.
 * Any thrown exception is caught and logged via `CriticalErrorsHandler`; the
-  loop continues to the next module.
+  loop continues to the next module — exactly as in the Asterisk dispatcher.
 
 Used by the **system / network / REST / WebUI** categories.
 {% endtab %}
@@ -97,8 +100,11 @@ of three ways:
 3. **By-reference mutation** — the call site passes an argument by reference and
    **ignores your return value**. You must mutate the argument in place:
    `createCronTasks(array &$tasks)`, `onBeforeHeaderMenuShow(array &$menuItems)`,
-   `applyACLFiltersToCDRQuery(array &$parameters, ...)`, and `onAfterACLPrepared`
-   (the call site passes `[&$acl]`). A `return` here does nothing.
+   `applyACLFiltersToCDRQuery(array &$parameters, ...)`,
+   `onGetControllerPermissions(string $controller, array &$permissions)`,
+   `onAfterACLPrepared` (the call site passes `[&$acl]`), and
+   `onAfterRoutesPrepared` (the call site passes `[&$router]`). A `return` here
+   does nothing.
 
 {% hint style="warning" %}
 Two hooks below — `getWafExemptions` and the `#[WafExempt]` attribute path — are
@@ -158,10 +164,33 @@ noted, all dispatched the same way):
 `generateIncomingRoutAfterDialContext(string $uniqId)`,
 `generateOutRoutAfterDialContext(array $rout)`,
 `generatePeerPjAdditionalOptions(array $peer)`,
-`generateModulesConf`, `generateAriConf`, and the two PJSIP option overrides
+`generateModulesConf`, and the two PJSIP option overrides
 which return an **array**:
 `overridePJSIPOptions(string $extension, array $options): array` and
 `overrideProviderPJSIPOptions(string $uniqid, array $options): array`.
+
+{% hint style="info" %}
+**`generateAriConf` has no default body.** Only the constant
+`AsteriskConfigInterface::GENERATE_ARI_CONF = 'generateAriConf'`
+(`Core/src/Core/Asterisk/Configs/AsteriskConfigInterface.php:62`) and the call
+site in `Core/src/Core/Asterisk/Configs/AriConf.php` exist — the interface does
+not declare the method and `AsteriskConfigClass` does not implement it. Declare
+`generateAriConf(): string` on `BlackListConf` yourself if your module needs to
+contribute to `ari.conf`; the returned string is concatenated like any other
+Asterisk hook.
+{% endhint %}
+
+### Config-generation lifecycle members
+
+`AsteriskConfigClass` also exposes four members that are part of the same
+family but are rarely thought of as "hooks". They are real and overridable:
+
+| Constant | Method signature | When the Core calls it |
+| --- | --- | --- |
+| `GENERATE_CONFIG` | `generateConfig(): void` | Regenerating all Asterisk configs — `Core/src/Core/System/Configs/PbxConf.php`. Override `generateConfigProtected()` rather than this wrapper if you only want to write your own `.conf` files. |
+| `GET_SETTINGS` | `getSettings(): void` | Called from `generateConfig()` before generation, so you can load your module settings into properties |
+| `GET_DEPENDENCE_MODELS` | `getDependenceModels(): array` | Returns the model classes your module cares about; used to decide whether a model change is relevant to you before `modelsEventChangeData` work is done |
+| — | `getMessages(): array` | Reads back the `$this->messages` array your hooks filled in; the installer and `PbxExtensionState` surface those strings to the admin |
 
 {% code title="Lib/BlackListConf.php" %}
 ```php
@@ -322,7 +351,7 @@ dispatched by `PBXConfModulesProvider::hookModulesMethod`.
 
 | Constant | Method signature | When the Core calls it |
 | --- | --- | --- |
-| `GET_PBXCORE_REST_ADDITIONAL_ROUTES` | `getPBXCoreRESTAdditionalRoutes(): array` | Registering REST routes — `Core/src/PBXCoreREST/Http/Request.php` |
+| `GET_PBXCORE_REST_ADDITIONAL_ROUTES` | `getPBXCoreRESTAdditionalRoutes(): array` | Registering REST routes — `Core/src/PBXCoreREST/Providers/RouterProvider.php` (the site that actually adds your routes); also read by `Core/src/PBXCoreREST/Http/Request.php` to decide which URIs may skip authentication |
 | `MODULE_RESTAPI_CALLBACK` | `moduleRestAPICallback(array $request): PBXApiResult` | Handling a REST request under root rights — `Core/src/PBXCoreREST/Lib/PbxExtensionsProcessor.php` |
 | `AUTHENTICATE_USER` | `authenticateUser(string $login, string $password): array` | Login attempt that the core could not authenticate — `Core/src/Common/Library/Auth/CredentialsValidator.php` |
 | `GET_PASSKEY_SESSION_DATA` | `getPasskeySessionData(string $login): array` | Resolving session params for a passkey login — `Core/src/PBXCoreREST/Lib/Passkeys/AuthenticationFinishAction.php` |
@@ -332,13 +361,22 @@ dispatched by `PBXConfModulesProvider::hookModulesMethod`.
 | `APPLY_ACL_FILTERS_TO_CDR_QUERY` | `applyACLFiltersToCDRQuery(array &$parameters, array $sessionContext = []): void` | Before a CDR query executes — `Core/src/PBXCoreREST/Lib/Cdr/GetListAction.php` |
 
 Other Web UI / REST hooks (all dispatched the same way):
-`onAfterRoutesPrepared(Router $router): void`,
-`onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher): void`,
-`onBeforeExecuteRoute(Dispatcher $dispatcher): void`,
-`onAfterExecuteRoute(Dispatcher $dispatcher): void`,
-`onGetControllerPermissions(string $controller, array &$permissions): void`,
-`onBeforeExecuteRestAPIRoute(Micro $app): void`,
-`onAfterExecuteRestAPIRoute(Micro $app): void`.
+`onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher): void`
+(`Core/src/AdminCabinet/Providers/AssetProvider.php`),
+`onBeforeExecuteRoute(Dispatcher $dispatcher): void` and
+`onAfterExecuteRoute(Dispatcher $dispatcher): void`
+(`Core/src/AdminCabinet/Controllers/BaseController.php`),
+`onBeforeExecuteRestAPIRoute(Micro $app): void` and
+`onAfterExecuteRestAPIRoute(Micro $app): void`
+(`Core/src/PBXCoreREST/Providers/RouterProvider.php`).
+
+Two more Web UI hooks are **by-reference** — they appear in the by-reference
+group above, not here:
+
+| Constant | Method signature | When the Core calls it |
+| --- | --- | --- |
+| `ON_AFTER_ROUTES_PREPARED` | `onAfterRoutesPrepared(Router $router): void` | Building the admin router — `Core/src/Common/Providers/RouterProvider.php` (passes `[&$router]`) |
+| `ON_GET_CONTROLLER_PERMISSIONS` | `onGetControllerPermissions(string $controller, array &$permissions): void` | Building the permission list for a controller — `Core/src/AdminCabinet/Controllers/AclController.php` (passes `[$controllerClass, &$customPermissions]`; whatever you append lands under `$permissions['custom']`) |
 
 {% hint style="info" %}
 **`getPasskeySessionData` has no default body.** Only the constant
@@ -396,7 +434,49 @@ For end-to-end recipes, see [recipes.md](recipes.md).
 
 ---
 
-## 5. Module lifecycle
+## 5. Peer and provider status changes
+
+Two more hooks fire when the Core detects that a SIP extension or a provider
+changed registration state. They are dispatched by
+`PBXConfModulesProvider::hookModulesMethod` like everything in sections 2–4,
+but they are unusual in two ways.
+
+{% hint style="warning" %}
+**No interface constant and no default body.** Unlike every other hook on this
+page, these two are dispatched by a **bare string literal** at the call site —
+there is no `SystemConfigInterface::…` constant to reference, and `ConfigClass`
+does not declare the methods. Spell the method name exactly as shown or the
+`method_exists()` check silently skips you.
+{% endhint %}
+
+| Method signature | When the Core calls it |
+| --- | --- |
+| `onExtensionStatusChange(array $changeData): void` | An internal extension's registration state changed — `Core/src/PBXCoreREST/Lib/Extensions/GetAllStatusesAction.php` |
+| `onProviderStatusChange(array $changeData): void` | A SIP/IAX provider's registration state changed — `Core/src/PBXCoreREST/Lib/Providers/GetAllStatusesAction.php` |
+
+Both receive the same payload shape:
+
+```php
+public function onProviderStatusChange(array $changeData): void
+{
+    // $changeData = [
+    //     'changes'   => [...],   // the per-entity state transitions
+    //     'timestamp' => 1735689600,
+    //     'source'    => 'GetAllStatusesAction',
+    // ];
+    foreach ($changeData['changes'] as $change) {
+        // React — notify a CRM, flip a UI badge, write a log line.
+    }
+}
+```
+
+The call site wraps the dispatch in its own `try`/`catch` and logs failures to
+syslog, so an exception in your handler will not break status polling — but it
+will also not be reported to the admin. Log deliberately.
+
+---
+
+## 6. Module lifecycle
 
 Declared in `SystemConfigInterface`, dispatched by
 `PBXConfModulesProvider::hookModulesMethod`, fired by

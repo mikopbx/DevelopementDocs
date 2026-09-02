@@ -8,7 +8,7 @@ description: >-
 
 This page is the rulebook for writing MikoPBX modules that are clean, secure, and indistinguishable from Core code. It targets **MikoPBX 2025.1.1+, PHP 8.4, Phalcon 5.9.3**. Everything here is verified against the Core source and the example modules shipped under `Extensions/EXAMPLES/`.
 
-The running example throughout this documentation is a fictional module **`ModuleBlackList`** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`, front-end `module-black-list.js`). Every rule below is also anchored to a **real** example module by repo-relative path so you can read working code.
+The running example throughout this documentation is a fictional module **`ModuleBlackList`** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers`, table `m_BlackListNumbers`, front-end `module-black-list-index.js`). Every rule below is also anchored to a **real** example module by repo-relative path so you can read working code.
 
 {% hint style="info" %}
 **How to read this page.** The conventions come first (naming, file layout, PHP idioms). The anti-patterns come second, each with a *Detection* signal, the *Problem*, and a copy-paste *Fix*. Security anti-patterns (`S1`–`S6`) are priority fixes — treat them before any code-quality cleanup.
@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace Modules\ModuleBlackList\Lib;
 ```
 
-* `declare(strict_types=1);` is mandatory on **every** file (anti-pattern #20 below). It makes scalar type hints reject silent coercion — a `string` passed where `int` is declared throws `TypeError` instead of becoming `0`.
+* `declare(strict_types=1);` is mandatory on **every** file (anti-pattern #10 below). It makes scalar type hints reject silent coercion — a `string` passed where `int` is declared throws `TypeError` instead of becoming `0`.
 * No closing `?>`. A trailing tag risks emitting stray whitespace that corrupts headers or generated config files.
 
 See a real header in `Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiConf.php`.
@@ -68,10 +68,12 @@ Consistent names are not cosmetic — the loader, the table-name resolver, the a
 | Worker                 | `Worker{Feature}{Type}`                          | `WorkerBlackListAMI`                                       |
 | REST resource classes  | `Controller` / `Processor` / `DataStructure`     | `Lib/RestAPI/Numbers/Controller.php`                       |
 | REST action            | `{Verb}{Entity}Action`                           | `GetListAction`, `SaveRecordAction`                        |
-| JS source / compiled   | `module-{kebab}.js`                              | `public/assets/js/src/module-black-list.js`               |
-| CSS                    | `module-{kebab}.css`                             | `public/assets/css/module-black-list.css`                 |
+| JS source / compiled   | `module-{kebab}-{action}.js`                     | `public/assets/js/src/module-black-list-index.js`          |
+| CSS                    | `module-{kebab}-{action}.css`                    | `public/assets/css/module-black-list-index.css`            |
 | Translation key prefix | `module_{feature}_`                              | `module_black_list_NumberColumn`                          |
 | Dialplan context       | `[module-{kebab}-{purpose}]`                     | `[module-black-list-check]`                               |
+
+Asset names carry the controller **action** suffix (`-index`, `-modify`, …) because the Core loads them per action — see `ModuleExampleFormController::indexAction()` / `modifyAction()` in `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`.
 
 ### Namespaces
 
@@ -136,6 +138,8 @@ Use `match` for request routing inside Conf hooks. It is exhaustive, returns a v
 
 {% code title="Lib/BlackListConf.php" %}
 ```php
+use MikoPBX\PBXCoreREST\Lib\PBXApiResult;
+
 public function moduleRestAPICallback(array $request): PBXApiResult
 {
     $action = $request['action'] ?? '';
@@ -147,8 +151,25 @@ public function moduleRestAPICallback(array $request): PBXApiResult
         default  => $this->createErrorResult("Unknown action: {$action}"),
     };
 }
+
+/**
+ * There is no inherited error-result helper — each module defines its own.
+ */
+private function createErrorResult(string $message): PBXApiResult
+{
+    $result = new PBXApiResult();
+    $result->processor = __METHOD__;
+    $result->success   = false;
+    $result->messages['error'] = [$message];
+
+    return $result;
+}
 ```
 {% endcode %}
+
+{% hint style="warning" %}
+`createErrorResult()` is **not** a method of `MikoPBX\Modules\Config\ConfigClass` — do not assume it is inherited. It is a small private helper that each module declares for itself, which is why it is spelled out above. The shipping examples do the same: `Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiConf.php` and `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv1/Lib/ExampleRestAPIv1Conf.php` each define their own copy.
+{% endhint %}
 
 This is exactly the shape used in `Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiConf.php` (`moduleRestAPICallback`). `match` is also the prescribed fix for the dynamic-dispatch security hole — see [S6](#s6-dynamic-dispatch-from-user-input).
 
@@ -174,7 +195,7 @@ Processes::processPHPWorker(
 
 ### Full type declarations on methods
 
-Every method declares parameter types and a return type — including `void` and `: never`. Anti-pattern #15 flags untyped methods.
+Every method declares parameter types and a return type — including `void` and `: never`. Anti-pattern [#11](#11-low-untyped-methods-and-properties-and-the-one-place-types-break-the-orm) flags untyped methods, and covers the one exception where a type declaration actually breaks the ORM.
 
 ```php
 public function isBlocked(string $number): bool { /* ... */ }
@@ -221,7 +242,7 @@ This is confirmed verbatim in the Core models `src/Common/Models/Sip.php` (`publ
 
 # Code-quality anti-patterns
 
-Each entry lists how to spot it, why it hurts, and the fix. Numbers match the Core anti-pattern checklist (`reference/anti-patterns.md` in the `mikopbx-module` skill).
+Each entry lists how to spot it, why it hurts, and the fix. They are ordered by severity, and the numbers are local to this page.
 
 ## #1 [CRITICAL] `MikoPBXVersion.php` in new modules
 
@@ -261,7 +282,7 @@ System::invokeActions(['manager' => 0]);
 // Reload cron jobs after touching scheduled tasks.
 System::invokeActions(['cron' => 0]);
 
-// (Re)start this module's own workers — see #14 below.
+// (Re)start this module's own workers — see #9 below.
 foreach ($this->getModuleWorkers() as $worker) {
     Processes::processPHPWorker($worker['worker']);
 }
@@ -292,7 +313,7 @@ public function onAfterModuleEnable(): void
 
 `Extensions/EXAMPLES/AMI/ModuleExampleAmi/` is the canonical split: `ExampleAmiConf.php` (hooks) delegates to `ExampleAmiMain.php` (logic).
 
-## #7 [HIGH] Phantom model fields
+## #4 [HIGH] Phantom model fields
 
 **Detection.** Code reads `$record->someField` where `someField` is not a declared column property on the model.
 
@@ -300,7 +321,7 @@ public function onAfterModuleEnable(): void
 
 **Fix.** Only access properties that are declared with column annotations on the model. If you need a new field, add it to the model **and** to the installer's migration (see [Data model](data-model.md)). Reference real models in `src/Common/Models/`.
 
-## #8 [MEDIUM] `die()` / `exit()` in library and worker classes
+## #5 [MEDIUM] `die()` / `exit()` in library and worker classes
 
 **Detection.** `die(` or `exit(` in `Lib/*.php` or `bin/*.php` (worker code).
 
@@ -318,7 +339,7 @@ return;
 throw new \RuntimeException('Settings not set');
 ```
 
-## #9 [MEDIUM] `1*$variable` casting idiom
+## #6 [MEDIUM] `1*$variable` casting idiom
 
 **Detection.** `1*$var` or `1*shell_exec(...)`.
 
@@ -330,7 +351,7 @@ throw new \RuntimeException('Settings not set');
 $count = (int) $var;
 ```
 
-## #10 [MEDIUM] `md5(print_r(...))` for change detection
+## #7 [MEDIUM] `md5(print_r(...))` for change detection
 
 **Detection.** `md5(print_r($data, true))`.
 
@@ -342,7 +363,7 @@ $count = (int) $var;
 $hash = md5(json_encode($data, JSON_THROW_ON_ERROR));
 ```
 
-## #13 [MEDIUM] File-based IPC instead of Redis
+## #8 [MEDIUM] File-based IPC instead of Redis
 
 **Detection.** `file_put_contents(... json_encode ...)` paired with `file_get_contents(... json_decode ...)` used to pass state between processes.
 
@@ -355,7 +376,7 @@ $redis = Di::getDefault()->get('redis');
 $redis->setex("blacklist_state:{$id}", 600, json_encode($data, JSON_THROW_ON_ERROR));
 ```
 
-## #14 [MEDIUM] Manual worker killing
+## #9 [MEDIUM] Manual worker killing
 
 **Detection.** `Processes::killByName(...)` inside `Lib/*Conf.php` to restart workers.
 
@@ -371,9 +392,61 @@ foreach ($this->getModuleWorkers() as $worker) {
 
 This is `startAllServices()` in `Extensions/EXAMPLES/AMI/ModuleExampleAmi/Lib/ExampleAmiMain.php`.
 
-## #20 / #21 [LOW] Missing `strict_types` and wrong DI import
+## #10 [LOW] Missing `strict_types` and wrong DI import
 
 Covered above under [File headers](#file-headers) and [The DI import rule](#the-di-import-rule). Detection: `grep -L "declare(strict_types" *.php` finds files missing the declaration; `use Phalcon\Di;` (without `\Di`) is the wrong import.
+
+## #11 [LOW] Untyped methods and properties — and the one place types break the ORM
+
+**Detection.** A method with no parameter types or no return type, or a non-model class property declared bare (`public $logPath;`). `grep -nE 'function [a-zA-Z]+\([^)]*\)\s*\{' Lib/*.php` finds methods missing a return type.
+
+**Problem.** Without declared types, `declare(strict_types=1)` has nothing to enforce: a `null` flows into a string concatenation, an empty array satisfies a "count" parameter, and the failure surfaces three call frames later as a nonsense value rather than a `TypeError` at the boundary. On a PHP 8.4 baseline there is no reason to give that up — and static analysis (phpstan) can only reason about what you declare.
+
+**Fix.** Type every parameter, every return, and every non-model property:
+
+```php
+// BEFORE — nothing is checked
+public function isBlocked($number)
+{
+    return $this->cache[$number];
+}
+
+// AFTER — the boundary is enforced
+public function isBlocked(string $number): bool
+{
+    return isset($this->cache[$number]);
+}
+```
+
+### The exception: never type a Phalcon model's primary key
+
+This rule stops at the model layer, and getting it wrong produces a **fatal error rather than a warning** — which is why it is worth stating as its own anti-pattern rather than a footnote.
+
+```php
+// WRONG — fatal
+class BlackListNumbers extends ModelsBase
+{
+    public int $id;
+}
+
+// RIGHT — untyped, as in every Core model
+class BlackListNumbers extends ModelsBase
+{
+    public $id;
+}
+```
+
+A typed, non-nullable `int $id` is **uninitialized** on a freshly constructed model — PHP typed properties have no implicit default. A new record has no `id` until the INSERT returns one, so any read of the property before that point raises:
+
+```
+Error: Typed property BlackListNumbers::$id must not be accessed before initialization
+```
+
+Phalcon reads the primary key while deciding whether `save()` is an INSERT or an UPDATE, so the very first `save()` on a new record blows up. Declaring `public ?int $id = null;` avoids the fatal but still fights the ORM's own hydration; the Core convention is the plain untyped `public $id;`.
+
+This is not theory — it is what every Core model does: `Core/src/Common/Models/Sip.php:68` and `Core/src/Common/Models/Extensions.php:79` both declare `public $id;`. The same file pair shows the rest of the column convention: `Sip.php:82` (`public ?string $disabled = '0';`) and `Extensions.php:107` (`public ?int $userid = null;`).
+
+The full rationale for all four column patterns is in [The Phalcon model exception](#the-phalcon-model-exception) above.
 
 ---
 

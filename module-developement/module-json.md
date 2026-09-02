@@ -17,7 +17,7 @@ object. See `MikoPBX\Modules\Setup\PbxExtensionSetupBase::__construct()` in
 its fields onto setup properties.
 
 {% hint style="info" %}
-The field list below was verified against **all 59 real `module.json` manifests** in the
+The field list below was verified against **all 60 real `module.json` manifests** in the
 production `Extensions/` tree. Every field documented here appears in at least one shipping
 module, and the parsing of each is traced to Core PHP. Fields that do **not** exist
 (`dependencies`, `max_pbx_version`) are called out explicitly in
@@ -68,7 +68,7 @@ For ModuleBlackList, the equivalent minimal manifest targeting the current basel
 {% endcode %}
 
 {% hint style="warning" %}
-`release_settings` is present in 49 of 59 manifests but is **not** parsed by the PBX at all
+`release_settings` is present in the large majority of manifests but is **not** parsed by the PBX at all
 — it is consumed only by the release/build tooling. A module installs and runs fine without
 it. See [release\_settings](#release_settings).
 {% endhint %}
@@ -90,7 +90,7 @@ important field: it is the directory name under the modules root, the PHP namesp
 (`Modules\ModuleBlackList\...`), the value of the `uniqid` column in `m_PbxExtensionModules`,
 and the key used for every lookup (`PbxExtensionModules::findFirstByUniqid()`).
 
-Conventions observed across all 59 manifests:
+Conventions observed across every production manifest:
 
 * Always starts with the prefix `Module`.
 * PascalCase, no spaces or punctuation.
@@ -204,8 +204,8 @@ The values documented by Core (the doc-comment on `PbxExtensionSetupBase::$modul
 
 {% hint style="info" %}
 The list is open-ended in code (the doc-comment ends with `...`), and the field is parsed as
-a free `string`. In the 59 real manifests only `languagepack` is set explicitly (24 of 24
-language packs); the other 35 modules omit the field and inherit `general`. Use a value from
+a free `string`. Across the production manifests only `languagepack` is set explicitly (in all 24
+language packs); every other module omits the field and inherits `general`. Use a value from
 the table above so the UI categorises your module correctly.
 {% endhint %}
 
@@ -214,7 +214,7 @@ ModuleBlackList is a call-filtering feature, so a reasonable choice is
 
 ## Commercial fields
 
-These two fields appear together in 10 of the 59 manifests (all commercial MIKO modules,
+These two fields appear together in a minority of manifests — currently 14, all commercial MIKO modules,
 e.g. `ModuleAmoCrm`). Omit both for a free/open module.
 
 ### lic_product_id
@@ -261,7 +261,7 @@ how the activation/feature-capture flow works end to end.
 
 ### wiki_links
 
-`object`, optional. Present in 19 manifests. A map of documentation URLs keyed by language
+`object`, optional. Present in a large minority of manifests (currently 23). A map of documentation URLs keyed by language
 code (`ru`, `en`). Parsed in `PbxExtensionSetupBase::__construct()` into
 `public array $wiki_links` (only if the JSON value is an array/object). Surfaced as help
 links in the web UI. The inner shape is a map of `old-url => new-url` per language, as seen
@@ -321,7 +321,7 @@ to skip).
 
 ## release_settings
 
-`object`, optional. Present in 49 manifests, always with the identical shape:
+`object`, optional. Present in most manifests (currently 49), always with the identical shape:
 
 ```json
 "release_settings": {
@@ -342,7 +342,7 @@ This is the most common point of confusion, so it is stated plainly:
 
 {% hint style="danger" %}
 **There is no `dependencies` array and no `max_pbx_version` field in any `module.json`.**
-Verified across all 59 production manifests — neither key appears anywhere. MikoPBX has **no
+Verified across all 60 production manifests — neither key appears anywhere. MikoPBX has **no
 declarative dependency graph** for modules.
 {% endhint %}
 

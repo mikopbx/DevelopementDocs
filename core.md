@@ -17,8 +17,8 @@ the [module data model](module-developement/data-model.md).
 
 Throughout this documentation we develop one running example module,
 **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`,
-model `BlackListNumbers` on table `m_BlackListNumbers`, front-end asset
-`module-black-list.js`). Where a pattern has a corresponding shipped sample, we
+model `BlackListNumbers` on table `m_BlackListNumbers`, front-end assets named
+per action — `module-black-list-index.js`, `module-black-list-modify.js`). Where a pattern has a corresponding shipped sample, we
 point you to a real example module under `Extensions/EXAMPLES/`.
 
 ## Platform

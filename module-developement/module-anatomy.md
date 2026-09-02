@@ -6,7 +6,7 @@ description: >-
 
 # Module anatomy
 
-A MikoPBX module is a self-contained Phalcon application that the Core mounts at runtime. It ships its own MVC web layer, its own background workers, its own isolated database, and its own translations. Once installed it lives under `/var/www/mikopbx/Modules/<ModuleUniqueID>/` on the PBX and is registered in the Core's dependency-injection container and router.
+A MikoPBX module is a self-contained Phalcon application that the Core mounts at runtime. It ships its own MVC web layer, its own background workers, its own isolated database, and its own translations. Once installed it lives under the Core's modules directory — `<mountpoint>/mikopbx/custom_modules/<ModuleUniqueID>/`, in practice `/storage/usbdisk1/mikopbx/custom_modules/<ModuleUniqueID>/` (the `core.modulesDir` setting, see `Core/src/Core/System/Directories.php`) — and is registered in the Core's dependency-injection container and router.
 
 This page is the map. It walks the scaffold produced by the **ModuleTemplate** (`Extensions/ModuleTemplate/`) directory by directory, tells you which class lives where, and explains the three-tier split that keeps the web UI, the orchestration logic, and the long-running daemons cleanly separated.
 
@@ -65,10 +65,10 @@ ModuleBlackList/
 │   └── img/logo.svg            # Module logo
 ├── agi-bin/                    # Optional AGI scripts (.gitkeep extension point)
 ├── bin/                        # Optional CLI binaries (.gitkeep extension point)
-└── db/                         # Optional pre-seeded SQLite DB (.gitkeep extension point)
+└── db/                         # Runtime home of the module's SQLite DB (module.db)
 ```
 
-The `.gitkeep` files in `agi-bin/`, `bin/`, and `App/Providers/` are placeholders that keep otherwise-empty directories in version control. They mark **extension points**: the Core knows to look in these folders, so you drop files in when you need them and leave them empty otherwise.
+The `.gitkeep` files in `agi-bin/`, `bin/`, and `App/Providers/` are placeholders that keep otherwise-empty directories in version control. They mark **extension points**: the Core knows to look in these folders, so you drop files in when you need them and leave them empty otherwise. `db/` is different — it ships empty but is **not** optional, see [below](#extension-point-directories-agi-bin-bin-and-the-db-directory).
 
 {% hint style="info" %}
 For a step-by-step on cloning the scaffold and wiring up your IDE, see [How to start](template-module-structure.md).
@@ -261,6 +261,8 @@ class ModuleBlackListForm extends BaseForm
 {
     public function initialize($entity = null, $options = null): void
     {
+        parent::initialize($entity, $options);
+
         $this->add(new Hidden('id', ['value' => $entity->id]));
         $this->add(new Text('number'));
         $this->addCheckBox('enabled', intval($entity->enabled) === 1);
@@ -270,6 +272,10 @@ class ModuleBlackListForm extends BaseForm
 {% endcode %}
 
 `BaseForm` provides convenience helpers such as `addTextArea(...)` and `addCheckBox(...)` on top of Phalcon's element classes (`Text`, `Numeric`, `Password`, `Check`, `Select`, `Hidden`).
+
+{% hint style="warning" %}
+Always call `parent::initialize($entity, $options)` **first**. `BaseForm::initialize()` is the only place that fires the `WebUIConfigInterface::ON_BEFORE_FORM_INITIALIZE` hook (`Core/src/AdminCabinet/Forms/BaseForm.php`), which is how other modules inject or disable fields on your form. Skip it and that hook silently never runs. The scaffold's own `ModuleTemplateForm.php` predates this rule — follow `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/App/Forms/ModuleExampleFormForm.php` instead.
+{% endhint %}
 
 ### `App/Views/` — Volt templates
 
@@ -369,7 +375,7 @@ class BlackListConf extends ConfigClass
                 break;
             default:
                 $res->success = false;
-                $res->messages[] = 'API action not found in moduleRestAPICallback ModuleBlackList';
+                $res->messages['error'][] = 'API action not found in ' . __METHOD__;
         }
         return $res;
     }
@@ -528,7 +534,7 @@ The AMI variant (`WorkerTemplateAMI.php`) follows the identical bootstrap patter
 
 ## `Models/` — the data layer
 
-Models extend `MikoPBX\Modules\Models\ModulesModelsBase`, which automatically connects the model to your module's **isolated database** (`<moduleUniqueId>_module_db`) based on the namespace. You never share tables with the Core's main database.
+Models extend `MikoPBX\Modules\Models\ModulesModelsBase`, which automatically connects the model to your module's **isolated database** based on the namespace. You never share tables with the Core's main database. The database file is `<moduleDir>/db/module.db`; the DI connection service that points at it is named `<moduleUniqueId>_module_db` (`ModulesModelsBase::getConnectionServiceName()`).
 
 Fields are declared as public properties annotated with Phalcon `@Column` doc-block annotations, and the physical table name is bound in `initialize()` via `setSource('m_<Entity>')`. From `Extensions/ModuleTemplate/Models/ModuleTemplate.php`:
 
@@ -644,15 +650,18 @@ public/assets/
 
 The Core caches/symlinks `public/assets/` into the cabinet's served `cache/<ModuleUniqueID>/` path on enable, which is why the controller paths contain `cache/<ModuleUniqueID>/`.
 
-## Extension-point directories: `agi-bin/`, `bin/`, `db/`
+## Extension-point directories: `agi-bin/`, `bin/`, and the `db/` directory
 
-These three folders ship containing only a `.gitkeep`. They are recognised locations the Core knows to look in:
+All three ship containing only a `.gitkeep`, but they do not play the same role.
+
+Two are genuine **extension points** — recognised locations the Core knows to look in, which you fill only if your feature needs them:
 
 * **`agi-bin/`** — AGI scripts (Asterisk Gateway Interface). When your module needs Asterisk to call into PHP during a call, drop the AGI script here; the Core symlinks it into the AGI path on enable (`PbxExtensionUtils::createAgiBinSymlinks()`).
 * **`bin/`** — module CLI binaries or helper executables.
-* **`db/`** — an optional pre-built SQLite database to ship with the module instead of generating an empty one from the models at install time.
 
-Leave them as empty `.gitkeep` directories until you actually need them.
+Leave those two as empty `.gitkeep` directories until you actually need them.
+
+**`db/` is not optional.** It is the runtime home of your module's SQLite database: `ModulesDBConnectionsProvider` points the module's DB connection at `<moduleDir>/db/module.db` and creates the file there on first use (`Core/src/Common/Providers/ModulesDBConnectionsProvider.php`). It is also the directory the installer preserves — `unInstallFiles($keepSettings = true)` copies `db/` to `<modulesDir>/Backup/<ModuleUniqueID>` and `installFiles()` copies it back on the next install, which is what makes an upgrade keep user data. Ship it empty (that is what the `.gitkeep` is for) and let the tables be generated from your models, but never delete the directory.
 
 ## How it all connects at runtime
 

@@ -20,15 +20,16 @@ a string from a hook, and the core decides where it lands.
 Throughout the cookbook we thread a single fictional module, **ModuleBlackList**
 (config class `BlackListConf`, main class `BlackListMain`, model
 `BlackListNumbers`, table `m_BlackListNumbers`, front-end asset
-`module-black-list.js`), so the recipes read as one continuous story. Each recipe
+`module-black-list-index.js`), so the recipes read as one continuous story. Each recipe
 is also anchored to a real, working example module under `Extensions/EXAMPLES/`.
 
 ## How a module plugs into Asterisk
 
 A module's config class extends `MikoPBX\Modules\Config\ConfigClass`. That base
-class in turn `extends AsteriskConfigClass implements AsteriskConfigInterface`
-(see `Core/src/Modules/Config/ConfigClass.php`), so your class inherits an
-empty, no-op implementation of **every** Asterisk hook. You override only the
+class in turn extends `AsteriskConfigClass` and implements four interfaces —
+`SystemConfigInterface`, `RestAPIConfigInterface`, `WebUIConfigInterface` and
+`AsteriskConfigInterface` (`Core/src/Modules/Config/ConfigClass.php:44-48`) — so
+your class inherits an empty, no-op implementation of **every** Asterisk hook. You override only the
 hooks you care about and ignore the rest.
 
 {% code title="Lib/BlackListConf.php" %}
@@ -79,9 +80,9 @@ examples confirmed in the core source:
 | --- | --- | --- |
 | `Generators/Extensions/InternalContexts.php` | `extensionGenInternal` | `[internal]` context of `extensions.conf` |
 | `Generators/Extensions/IncomingContexts.php` | `generateIncomingRoutBeforeDial` | each incoming route, before the system dials |
-| `Generators/Extensions/IncomingContexts.php` | `generateIncomingRoutAfterDialContext` | each incoming route, after the dial |
+| `Generators/Extensions/IncomingContexts.php` | `generateIncomingRoutAfterDialContext` | the `[<provider>-incoming]` summary context, after the default action's `Dial()`/`Goto()` |
 | `Generators/Extensions/OutgoingContext.php` | `generateOutRoutContext` | each outgoing route context |
-| AMI example (`ExampleAmiConf.php`) | `generateManagerConf` | a user section in `manager.conf` |
+| `Configs/ManagerConf.php` | `generateManagerConf` | a user section in `manager.conf` |
 
 The full catalogue of hook methods — dialplan contexts, includes, hints, feature
 codes, PJSIP overrides, AMI users — lives in
@@ -124,8 +125,10 @@ Choose the right hook first, then tune priority only when two modules collide.
 
 React to a call the moment it arrives on an inbound route — before MikoPBX dials
 the destination. You implement `generateIncomingRoutBeforeDial($rout_number)`
-(or the `…PreSystem` / `…System` / `…AfterDialContext` variants) and return
-dialplan that runs in the incoming context. This is where ModuleBlackList drops
+(or the `…PreSystem` / `…System` variants — all three fire once per route) and
+return dialplan that runs in the incoming context. The fourth hook,
+`generateIncomingRoutAfterDialContext($uniqId)`, is different: it is emitted once
+in the provider's summary context, not per route. This is where ModuleBlackList drops
 a call from a barred number, or sets a channel variable for later steps. The
 core invokes these hooks from
 `Core/src/Core/Asterisk/Configs/Generators/Extensions/IncomingContexts.php`.

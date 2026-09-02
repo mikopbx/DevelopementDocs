@@ -15,7 +15,16 @@ This recipe wires a Fomantic-styled [DataTables](https://datatables.net/) grid
 to a **REST API v3 `getList` endpoint**, the same architecture the core Call
 Detail Records page uses. We thread it through the running example module
 **ModuleBlackList** (model `BlackListNumbers`, table `m_BlackListNumbers`,
-resource slug `module-black-list/numbers`, JS file `module-black-list.js`).
+resource slug `module-black-list/numbers`, JS file `module-black-list-index.js`).
+
+{% hint style="info" %}
+Assets are named per **action**, not per module: the grid page (`indexAction`)
+loads `module-black-list-index.js` / `module-black-list-index.css`, while the
+edit page (`modifyAction`) loads `module-black-list-modify.js`. The production
+grid module follows the same rule — see the file list under
+`Extensions/ModulePhoneBook/public/assets/js/src/`
+(`module-phonebook-index.js`, `module-phonebook-settings.js`, …).
+{% endhint %}
 
 {% hint style="warning" %}
 **No EXAMPLES module renders a datatable yet.** The canonical
@@ -52,7 +61,7 @@ A server-paginated grid has two halves that meet over HTTP:
 | Half | Lives in | Responsibility |
 | --- | --- | --- |
 | **Data source** | `Lib/RestAPI/Numbers/Actions/GetListAction.php` | Reads `limit`/`offset`/`search`/`order` from the request, queries `BlackListNumbers`, returns a `PBXApiResult` with `data` + `pagination`. |
-| **Grid** | `App/Views/.../index.volt` + `public/assets/js/src/module-black-list.js` | Renders an empty `<table>` and a DataTable that calls the v3 endpoint, maps DataTables' draw parameters to the v3 query, and renders the returned page. |
+| **Grid** | `App/Views/.../index.volt` + `public/assets/js/src/module-black-list-index.js` | Renders an empty `<table>` and a DataTable that calls the v3 endpoint, maps DataTables' draw parameters to the v3 query, and renders the returned page. |
 
 The controller's `indexAction()` does **almost nothing** for a grid — it loads
 assets and renders a static view. All data flows through the REST endpoint. This
@@ -296,13 +305,13 @@ public function indexAction(): void
     $headerCollectionCSS = $this->assets->collection(AssetProvider::HEADER_CSS);
     $headerCollectionCSS
         ->addCss('css/vendor/datatable/dataTables.semanticui.min.css', true)
-        ->addCss('css/cache/' . $this->moduleUniqueID . '/module-black-list.css', true);
+        ->addCss('css/cache/' . $this->moduleUniqueID . '/module-black-list-index.css', true);
 
     // DataTables vendor JS + your compiled grid script.
     $footerCollectionJS = $this->assets->collection(AssetProvider::FOOTER_JS);
     $footerCollectionJS
         ->addJs('js/vendor/datatable/dataTables.semanticui.js', true)
-        ->addJs('js/cache/' . $this->moduleUniqueID . '/module-black-list.js', true);
+        ->addJs('js/cache/' . $this->moduleUniqueID . '/module-black-list-index.js', true);
 
     $this->view->pick('Modules/' . $this->moduleUniqueID . '/ModuleBlackList/index');
 }
@@ -328,7 +337,7 @@ The two adapters are `ajax.data` (out) and `ajax.dataSrc` (in). This pattern is
 copied from the production CDR page
 (`Core/sites/admin-cabinet/assets/js/src/CallDetailRecords/call-detail-records-index.js`):
 
-{% code title="public/assets/js/src/module-black-list.js" %}
+{% code title="public/assets/js/src/module-black-list-index.js" %}
 ```javascript
 /* global globalRootUrl, globalTranslate, SemanticLocalization, TokenManager, UserMessage */
 
@@ -536,13 +545,18 @@ than v3, but the **client-side editing mechanics** transfer directly.
 ## Step 6 — compile the JavaScript
 
 The browser only ever loads the compiled file from
-`js/cache/<moduleUniqueID>/`; the `src/` file is never served directly. After
-every edit, transpile with Babel (airbnb preset):
+`js/cache/<moduleUniqueID>/`; the `src/` file is never served directly. That URL
+prefix is **not** a build output directory — the installer symlinks
+`js/cache/<moduleUniqueID>` straight to your module's `public/assets/js`
+(`PbxExtensionUtils::createAssetsSymlinks()`,
+`Core/src/Modules/PbxExtensionUtils.php:105-114`; `css` and `img` are symlinked
+the same way). So Babel's `--out-dir` is `public/assets/js`, the parent of
+`src/`:
 
 {% code title="bash" %}
 ```bash
-babel public/assets/js/src/module-black-list.js \
-  --out-dir public/assets/js/cache \
+babel public/assets/js/src/module-black-list-index.js \
+  --out-dir public/assets/js \
   --source-maps inline \
   --presets airbnb
 ```
@@ -570,7 +584,8 @@ the controller registers in Step 3.
    sets `recordsTotal`/`recordsFiltered`.
 6. **Auth** — the page carries `token-manager.js` (every cabinet page does), and
    `TokenManager.accessToken` is sent as `Authorization: Bearer …`.
-7. **Compile** the JS to `js/cache/` before testing.
+7. **Compile** the JS into `public/assets/js/` (which `js/cache/<id>` symlinks
+   to) before testing.
 
 ## See also
 

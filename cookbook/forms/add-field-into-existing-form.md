@@ -146,6 +146,28 @@ recognise your fields in the submitted POST data later. ModuleUsersUI follows th
 same convention with a `module_users_ui_` prefix.
 {% endhint %}
 
+{% hint style="warning" %}
+**Reading `$entity->user_id` is not enough on its own.** Because the form is now
+initialized without an entity, the snippet above renders an unchecked box on
+every real page load. `ModuleUsersUI` solves this rather than tolerating it: when
+`$entity` is not an object or `user_id` is empty, it recovers the id from the
+dispatcher parameters and rebuilds a stand-in entity —
+
+```php
+if (!is_object($entity) || empty($entity->user_id)) {
+    $userId = $this->resolveUserIdFromDispatcher();
+    $entity = (object)['user_id' => $userId];
+}
+```
+
+— see `Extensions/ModuleUsersUI/Lib/UsersUIConf.php:175-188` and its
+`resolveUserIdFromDispatcher()` helper just below. Copy that shape if your field
+has to show a stored value on first render. Note the helper also has to cope with
+the URL parameter meaning different things across versions (in 2025.1.1 the
+modify-route parameter *is* the `user_id`; in older builds it is the extension id
+and needs a lookup).
+{% endhint %}
+
 ModuleUsersUI builds a richer set of elements (Text, Password, Check, Hidden,
 Select) in a dedicated helper and adds them all to the same form — see the
 verified reference in
@@ -226,9 +248,16 @@ Compare with the working originals:
 
 {% hint style="info" %}
 A Semantic-UI toggle checkbox needs `$('.ui.checkbox').checkbox()` to initialise.
-If your module ships a JS file (e.g. `module-black-list.js`) loaded via
-`onAfterAssetsPrepared`, do the initialisation there. Asset loading is its own
-topic and is out of scope for this page.
+Because you are extending a page owned by the **core** controller, you cannot add
+the asset from your own `indexAction`/`modifyAction` — use the
+`onAfterAssetsPrepared(Manager $assets, Dispatcher $dispatcher)` hook
+(`WebUIConfigInterface::ON_AFTER_ASSETS_PREPARED`,
+`Core/src/Modules/Config/WebUIConfigInterface.php:49,111`), which hands you the
+asset manager plus the dispatcher so you can check which controller/action is
+being rendered before attaching anything. Name the file for the action you are
+extending — `module-black-list-extensions-modify.js` — since asset names are
+per-action, not per-module. Asset loading is its own topic and is otherwise out
+of scope for this page.
 {% endhint %}
 
 ## Step 3 — Persist the value with a model relation

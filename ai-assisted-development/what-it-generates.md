@@ -13,9 +13,8 @@ how to re-verify everything by hand so you never have to take the skill's word f
 
 The running example is the fictional spam-blocking module **ModuleBlackList** (config class
 `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers` backed by table
-`m_BlackListNumbers`, front-end script `module-black-list.js`). Most patterns below are also
-anchored to a real, shipped example module you can open and compare against; the few that are
-not (notably the `App/Providers/` files) are flagged inline.
+`m_BlackListNumbers`, front-end script `module-black-list-index.js`). Every pattern below is
+anchored to a real, shipped module you can open and compare against.
 
 ## File generation order
 
@@ -24,27 +23,47 @@ before it. A full "create" session with the `base`, `ui`, `rest-api`, `dialplan`
 recipes selected produces the tree in this sequence:
 
 1. **`module.json`** — module metadata (unique id, version, `min_pbx_version`, namespace).
-2. **`Setup/PbxExtensionSetup.php`** — the installer (creates tables, registers the module).
-3. **`Models/*.php`** — database models (e.g. `Models/BlackListNumbers.php`).
-4. **`Lib/{Feature}Conf.php`** — the configuration class with dialplan / config hooks
+2. **`README.md` and `README.ru.md`** — equivalent administrator documentation in English
+   and Russian.
+3. **`.github/workflows/build.yml`** — production build and publish automation.
+4. **`Setup/PbxExtensionSetup.php`** — the installer (creates tables, registers the module).
+5. **`Models/*.php`** — database models (e.g. `Models/BlackListNumbers.php`).
+6. **`Lib/{Feature}Conf.php`** — the configuration class with dialplan / config hooks
    (e.g. `Lib/BlackListConf.php`).
-5. **`Lib/{Feature}Main.php`** — business logic, where the recipe needs it
+7. **`Lib/{Feature}Main.php`** — business logic, where the recipe needs it
    (e.g. `Lib/BlackListMain.php`).
-6. **`App/Controllers/`** — web controllers (`ui` recipe).
-7. **`App/Forms/`** — Phalcon forms (`ui` recipe).
-8. **`App/Views/`** — Volt templates (`ui` recipe).
-9. **`App/Providers/`** — provider classes such as `AssetProvider` / `MenuProvider`
-   (`ui` recipe). Note: the canonical example ships an empty `App/Providers/` directory
-   (`.gitkeep` only), and no shipped module currently contains these per-module provider
-   files — asset and menu wiring in the examples lives in `App/Module.php` and the
-   controllers (which reference the *core* `MikoPBX\AdminCabinet\Providers\AssetProvider`).
-   Treat generated provider files as unverified against a real example until confirmed.
-10. **`public/assets/js/src/`** — ES6+ JavaScript source (`ui` recipe).
-11. **`public/assets/css/`** — CSS styles (`ui` recipe).
-12. **`Lib/RestAPI/`** — REST API controllers and actions (`rest-api` recipe).
-13. **`bin/`** — worker scripts (`workers` recipe).
-14. **`agi-bin/`** — AGI scripts (`agi` recipe).
-15. **`Messages/`** — translation files, generated via the `/translations` skill.
+8. **`App/Controllers/`** — web controllers (`ui` recipe).
+9. **`App/Forms/`** — Phalcon forms (`ui` recipe).
+10. **`App/Views/`** — Volt templates (`ui` recipe).
+11. **`App/Providers/`** — *optional* per-module `AssetProvider` / `MenuProvider` helper
+    classes (`ui` recipe). See the note below before you expect them.
+12. **`public/assets/js/src/`** — ES6+ JavaScript source, one file per controller action
+    (`ui` recipe).
+13. **`public/assets/css/`** — CSS styles (`ui` recipe).
+14. **`Lib/RestAPI/`** — REST API controllers and actions (`rest-api` recipe).
+15. **`bin/`** — worker scripts (`workers` recipe).
+16. **`agi-bin/`** — AGI scripts (`agi` recipe).
+17. **`Messages/`** — translation files, generated via the `/translations` skill.
+
+{% hint style="info" %}
+**About `App/Providers/`.** These are a convenience pattern, not a requirement. The default —
+and what the canonical example `ModuleExampleForm` does — is to register assets *inline in the
+controller* against the **core** provider constants:
+
+```php
+use MikoPBX\AdminCabinet\Providers\AssetProvider;
+
+$this->assets->collection(AssetProvider::HEADER_CSS)->addCss(...);
+$this->assets->collection(AssetProvider::FOOTER_JS)->addJs(...);
+```
+
+`ModuleExampleForm/App/Providers/` contains only a `.gitkeep`. Per-module provider classes
+pay off once a module has several pages and a long shared asset list; three shipped
+production modules use them — `ModuleLocalSpeechToText`, `ModuleRemoteSupport` and
+`ModuleAiSupervisor` (see
+`Extensions/ModuleLocalSpeechToText/App/Providers/AssetProvider.php` for `addCss()`/`addJs()`
+and `MenuProvider.php` for page-path constants). For a single-page module, skip them.
+{% endhint %}
 
 {% hint style="info" %}
 The order is not cosmetic. `module.json` defines the namespace that every later file
@@ -58,6 +77,9 @@ A representative tree for **ModuleBlackList**:
 ```
 Extensions/ModuleBlackList/
 ├── module.json
+├── README.md
+├── README.ru.md
+├── .github/workflows/build.yml
 ├── Setup/
 │   └── PbxExtensionSetup.php
 ├── Models/
@@ -76,12 +98,12 @@ Extensions/ModuleBlackList/
 │   ├── Controllers/ModuleBlackListController.php
 │   ├── Forms/ModuleBlackListForm.php
 │   ├── Views/ModuleBlackList/index.volt
-│   └── Providers/                 # see note in "File generation order" — not shipped in examples
-│       ├── AssetProvider.php       # (generated by the ui recipe; unverified against a real module)
+│   └── Providers/                 # optional — multi-page modules only (see note above)
+│       ├── AssetProvider.php
 │       └── MenuProvider.php
 ├── public/assets/
-│   ├── js/src/module-black-list.js
-│   └── css/module-black-list.css
+│   ├── js/src/module-black-list-index.js
+│   └── css/module-black-list-index.css
 ├── agi-bin/
 │   └── check-blacklist.php
 └── Messages/
@@ -89,7 +111,9 @@ Extensions/ModuleBlackList/
     └── … (28 more languages)
 ```
 
-Open the canonical examples to see each slice in a real module:
+The skill reads the published reference modules ([github.com/mikopbx](https://github.com/mikopbx),
+starting with [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate)) before it writes each
+slice. The same slices are shown in the example modules used throughout this guide:
 
 * Web UI page: `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`
 * REST API (current version): `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/`
@@ -173,8 +197,9 @@ use Phalcon\Di;
 
 ## Post-generation checks the skill runs
 
-After the last file is written, the skill runs three checks and refuses to declare success
-silently if any fail.
+After the last file is written, the skill runs seven checks and refuses to declare success
+silently if any fail. Paths below assume the module directory is `Extensions/ModuleBlackList`;
+substitute your own.
 
 ### 1. PHP syntax — `php -l` on every file
 
@@ -185,22 +210,24 @@ find Extensions/ModuleBlackList -name "*.php" -exec php -l {} \;
 ### 2. JavaScript transpilation via the `/babel-compiler` skill
 
 If the `ui` recipe produced JavaScript, the skill transpiles the ES6+ source to ES5 with the
-Dockerized Babel compiler (`ghcr.io/mikopbx/babel-compiler:latest`). For an extension module,
-the source under `public/assets/js/src/` is concatenated into a single
-`public/assets/js/module-black-list.js`:
+Dockerized Babel compiler (`ghcr.io/mikopbx/babel-compiler:latest`). Each source file under
+`public/assets/js/src/` is compiled one-for-one into `public/assets/js/`, keeping its name:
 
 ```bash
 docker run --rm -v "$(pwd)":/workspace \
   ghcr.io/mikopbx/babel-compiler:latest \
-  /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list.js \
+  /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list-index.js \
   extension
 ```
 
+produces `public/assets/js/module-black-list-index.js`.
+
 {% hint style="info" %}
-The target argument is `extension` for module files (single concatenated output named after
-the module) and `core` for admin-cabinet files (output mirrors the source directory tree).
-Mount your own checkout at `/workspace`. The Babel preset is fixed inside the image — do not
-override it.
+The target argument is `extension` for module files and `core` for admin-cabinet files. Mount
+your own checkout at `/workspace`. The Babel preset is fixed inside the image — do not
+override it. Output always lands in `public/assets/js/`; there is no `cache/` build directory
+in your checkout (`js/cache/<ModuleID>/…` paths you see in provider classes are the *runtime
+URL* the admin cabinet serves module assets from, not a build target).
 {% endhint %}
 
 ### 3. `module.json` validity
@@ -209,6 +236,51 @@ override it.
 php -r "json_decode(file_get_contents('Extensions/ModuleBlackList/module.json'), true) ?: exit(1);"
 ```
 
+### 4. Standalone translation catalogs
+
+Every `Messages/<locale>.php` must `return` a literal array and nothing else — no `require`,
+`include`, variables, `array_keys`, `array_combine`, merges or runtime composition. MikoPBX
+loads and processes each catalog itself, so a computed catalog silently yields no keys:
+
+```bash
+! grep -RE '(require|include)(_once)?[[:space:]]*\(?[[:space:]]*(__DIR__|__FILE__|\$[A-Za-z_]|['"'"'"][^'"'"'"]*\.php)|\b(array_keys|array_combine)[[:space:]]*\(' \
+  Extensions/ModuleBlackList/Messages/*.php
+```
+
+The pattern matches on the *argument*, so a translated string that merely contains the word
+"include" (for example "Include only internal calls") passes, while
+`array_merge(include 'base.php', …)` is caught.
+
+### 5. README pair (production modules only)
+
+```bash
+test -f Extensions/ModuleBlackList/README.md
+test -f Extensions/ModuleBlackList/README.ru.md
+```
+
+### 6. Publish workflow (production modules only)
+
+```bash
+test -f Extensions/ModuleBlackList/.github/workflows/build.yml
+```
+
+Checks 5 and 6 are skipped for example modules: they usually ship a single readme and are
+built by a shared workflow of the repository that hosts them.
+
+### 7. REST/OpenAPI translations (when the `rest-api` recipe is present)
+
+```bash
+# run from the Core checkout root, or set MIKOPBX_CORE_DIR to it
+php <skills-dir>/mikopbx-module/scripts/validate-rest-api-translations.php \
+  Extensions/ModuleBlackList
+```
+
+The script ships with the skill. It checks that every module-owned REST key and every
+generated tag key (`rest_tag_ModuleBlackListNumbers`, operation summaries, parameter and
+schema descriptions) is defined in both `Messages/en.php` and `Messages/ru.php`. A raw
+identifier such as `rest_numbers_GetList` showing up in the OpenAPI UI is a failure, not an
+acceptable fallback.
+
 ### The report
 
 When the checks finish, the skill prints a summary: the recipe set it applied, the full list
@@ -216,7 +288,7 @@ of files it created, and the pass/fail result of each check, followed by suggest
 
 ```
 Module: ModuleBlackList
-Location: Extensions/ModuleBlackList/
+Location: ModuleBlackList/
 Recipes: base, ui, rest-api, dialplan, agi
 
 Files created:
@@ -241,10 +313,9 @@ Next steps:
 
 ## Generated AGI scripts: use the real Core API
 
-{% hint style="danger" %}
-**Known skill defect — fix AGI scripts after generation.** The `agi` recipe templates in the
-skill (`templates/agi-recipe.md` and `reference/recipes.md`) emit a class and method names
-that **do not exist in the MikoPBX Core**:
+{% hint style="warning" %}
+**Check the class name in any generated AGI script.** Earlier revisions of the `agi` recipe
+emitted a client that **does not exist in the MikoPBX Core**:
 
 ```php
 use AGI\AgiClient;          // ❌ no such class
@@ -253,10 +324,10 @@ $agi->getVariable(...);     // ❌ no such method
 $agi->setVariable(...);     // ❌ no such method
 ```
 
-The real AGI client is `MikoPBX\Core\Asterisk\AGI` (see
-`Core/src/Core/Asterisk/AGI.php`). Its accessor methods are **snake_case**:
-`get_variable()` and `set_variable()`. After the skill generates an AGI script, replace the
-recipe's form with the correct one below.
+The real AGI client is `MikoPBX\Core\Asterisk\AGI` (see `Core/src/Core/Asterisk/AGI.php`) and
+its accessors are **snake_case**: `get_variable()` and `set_variable()`. The skill templates
+(`templates/agi-recipe.md`, `reference/recipes.md`) have been corrected, but if a script comes
+back referencing `AgiClient`, replace it with the form below.
 {% endhint %}
 
 The correct, Core-verified pattern — confirmed against `Core/src/Core/Asterisk/AGI.php`:
@@ -322,10 +393,58 @@ languages.
    inconsistent file. Each merged file is also `php -l`-checked, and placeholder names must be
    identical to the Russian original.
 
+### The three registration keys
+
+Beyond the keys your own code references, every module catalog **must** carry three keys that
+only MikoPBX Core reads — nothing in your PHP, JavaScript or Volt will mention them, so they
+are easy to lose:
+
+| Key | What it labels |
+| --- | --- |
+| `AdditionalMenuItem<ModuleUniqueID>` | the sidebar entry |
+| `Breadcrumb<ModuleUniqueID>` | the module title and breadcrumb |
+| `SubHeader<ModuleUniqueID>` | the module description |
+
+For **ModuleBlackList** those are `AdditionalMenuItemModuleBlackList`,
+`BreadcrumbModuleBlackList` and `SubHeaderModuleBlackList`. They must be present and
+translated in **all 29 locales** — when one is missing, the module-management page renders the
+raw key name instead of a label.
+
+### The standalone-array rule
+
+Each `Messages/<locale>.php` returns a plain literal array. Never build a catalog at runtime
+(`require`, `include`, variables, `array_keys`, `array_combine`, array merges) — check 4 above
+enforces this.
+
 Technical terms (SIP, IAX, AMI, PJSIP, RTP, CDR, IVR, DTMF, codec, trunk, extension, …) are
 left untranslated in every language. See
 [Module translations](../module-developement/translations.md) for the full key-naming,
 prefix and placeholder rules.
+
+## The production repository contract
+
+When you answer "production module" in the discovery dialog, the skill also lays down the
+release plumbing. Five requirements, straight from `SKILL.md`:
+
+1. **A README pair.** `README.md` (English, the default) and `README.ru.md` with equivalent
+   content — written for *administrators*: purpose first, then installation and use, security,
+   privacy, troubleshooting and support. Contributor/build commands stay secondary.
+2. **Copy a maintained module first.** Inspect a currently maintained production module
+   published at [github.com/mikopbx](https://github.com/mikopbx) before adding automation,
+   rather than inventing a workflow.
+3. **`.github/workflows/build.yml`** built on the shared reusable workflow
+   `mikopbx/.github-workflows/.github/workflows/extension-publish.yml@master`, triggered on
+   `develop`, `master` and `workflow_dispatch`.
+4. **Release flags in `module.json`** — `release_settings.publish_release`,
+   `changelog_enabled` and `create_github_release`.
+5. **Verify both branches before pushing either**: `develop` must produce a *prerelease*,
+   `master` a production publication.
+
+{% hint style="warning" %}
+Steps 1, 3 and 4 are generated for you; step 5 is not. The skill cannot run your GitHub
+Actions — confirm the develop-prerelease / master-release behavior yourself before the first
+push to either branch.
+{% endhint %}
 
 ## How to verify the output yourself
 
@@ -343,7 +462,7 @@ install the module.
    ```bash
    docker run --rm -v "$(pwd)":/workspace \
      ghcr.io/mikopbx/babel-compiler:latest \
-     /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list.js \
+     /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list-index.js \
      extension
    ```
 
@@ -353,24 +472,25 @@ install the module.
    php -r "json_decode(file_get_contents('Extensions/ModuleBlackList/module.json'), true) ?: exit(1);"
    ```
 
-4. **Run the style skills** to check conventions beyond bare syntax — `/php-style` validates
-   PSR-1/PSR-4/PSR-12 and PHP 8.4 idioms; `/js-style` validates the ES6+ source against the
-   MikoPBX JavaScript standards.
+4. **Run static analysis** beyond bare syntax — the Core checkout ships `phpcs` (PSR-12) and
+   `phpstan`; point them at the module directory. Phalcon is a PHP extension, not a Composer
+   package, so add `Core/vendor/phalcon/ide-stubs/src` to phpstan's `scanDirectories` or
+   every Phalcon class shows up as "not found".
 
 5. **Verify translation consistency** — confirm every language file has the same key count as
-   `Messages/ru.php` (the `/translations` skill ships consistency-check commands; a quick spot
+   `Messages/ru.php` (the `translations` skill ships consistency-check commands; a quick spot
    check is `php -r "echo count(include 'Extensions/ModuleBlackList/Messages/ru.php');"`
    compared against each language).
 
-6. **Install and test live** with the `/container-inspector` skill, which gives you the running
-   MikoPBX container's connection parameters and lets you restart workers — install the module
-   into the container, exercise the settings page and the REST API, and trigger the dialplan /
-   AGI path to confirm runtime behavior, not just static checks.
+6. **Install and test live** — install the module into the development container or a test
+   PBX, exercise the settings page, call the REST API with the `api-client` skill, check the
+   rows with `sqlite-inspector`, and trigger the dialplan / AGI path while `log-analyzer` and
+   `asterisk-validator` watch the logs. Runtime behavior is what matters, not static checks.
 
 {% hint style="warning" %}
 Static checks (`php -l`, Babel, JSON validation) prove the files *parse*. They do not prove
 the module *works*. Always finish with a live install and functional test before treating a
-generated module as done — and remember to apply the AGI correction above first.
+generated module as done — and re-check any generated AGI script against the correct client class above.
 {% endhint %}
 
 ## Related pages

@@ -18,7 +18,7 @@ This vocabulary is shared by two consumers:
 * **Hand-coders** — you pick the recipes your module needs and copy the patterns from the linked examples.
 * **The `/mikopbx-module` AI skill** — it generates modules by selecting and composing the same recipes. See [what the skill generates](../ai-assisted-development/what-it-generates.md).
 
-Everything below is anchored to the **running example** of this guide — a fictional module called **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers` backed by table `m_BlackListNumbers`, front-end script `module-black-list.js`) — and to **real, shipping example modules** under `Extensions/EXAMPLES/`.
+Everything below is anchored to the **running example** of this guide — a fictional module called **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`, model `BlackListNumbers` backed by table `m_BlackListNumbers`, front-end script `module-black-list-index.js`) — and to **real, shipping example modules** under `Extensions/EXAMPLES/`.
 
 {% hint style="info" %}
 Recipes are a documentation and generation convention, not a runtime framework. There is no `Recipe` class. When you "add the workers recipe", you are simply adding the files and the `getModuleWorkers()` hook that the recipe describes.
@@ -99,9 +99,15 @@ The ui recipe gives ModuleBlackList a settings page inside the MikoPBX admin cab
 App/Controllers/ModuleBlackListController.php   # main controller (Phalcon MVC)
 App/Forms/ModuleBlackListForm.php               # Phalcon form
 App/Views/ModuleBlackList/index.volt            # Volt template
-public/assets/js/src/module-black-list.js       # ES6+ source (babel-compiled)
-public/assets/css/module-black-list-index.css   # styles
+public/assets/js/src/module-black-list-index.js  # ES6+ source (babel-compiled)
+public/assets/css/module-black-list-index.css    # styles
 ```
+
+Asset filenames are **per controller action**, not per module: the `index`
+action loads `module-black-list-index.*`, a `modify` action would load
+`module-black-list-modify.*`. This is the convention the Core example follows
+(`module-example-form-index.js`, `module-example-form-modify.js`), and the
+controller below hardcodes those names, so they must match exactly.
 
 ### How assets are registered (important)
 
@@ -345,7 +351,11 @@ $agi = new AGI();
 // Read a channel variable (second arg true => return the value only).
 $callerNum = $agi->get_variable('CALLERID(num)', true);
 
-$blocked = BlackListNumbers::findFirst("number = '" . addslashes($callerNum) . "'");
+// Always bind parameters — never interpolate channel data into a condition.
+$blocked = BlackListNumbers::findFirst([
+    'conditions' => 'number = :num:',
+    'bind'       => ['num' => $callerNum],
+]);
 if ($blocked !== null) {
     // Mark the call and route it via a dialplan application.
     $agi->set_variable('BLACKLISTED', '1');
@@ -364,6 +374,10 @@ The method signatures, verified in `Core/src/Core/Asterisk/AGI.php`:
 * `exec(string $application, mixed $options): array`
 
 Channel request data is also available as `$agi->request['agi_callerid']` (and similar `agi_*` keys), as used by `ModuleAutoDialer`.
+
+{% hint style="danger" %}
+AGI scripts run as **root** and every value they read from the channel is attacker-influenced (`CALLERID(num)` comes straight off the SIP wire). Bind every ORM parameter as shown above, and wrap every shell argument in `escapeshellarg()`. See anti-patterns [S2](best-practices.md#s2-critical-sql-injection-in-findfirst-find) and [S3](best-practices.md#s3-critical-command-injection).
+{% endhint %}
 
 **See working examples in** real shipping modules:
 
@@ -409,6 +423,7 @@ public function getModuleWorkers(): array
 | --- | --- | --- |
 | `WorkerSafeScriptsCore::CHECK_BY_BEANSTALK` | `checkWorkerBeanstalk` | Beanstalk queue / event processing |
 | `WorkerSafeScriptsCore::CHECK_BY_AMI` | `checkWorkerAMI` | Real-time AMI call-event tracking |
+| `WorkerSafeScriptsCore::CHECK_BY_REDIS` | `checkWorkerRedis` | Workers that report liveness through Redis |
 | `WorkerSafeScriptsCore::CHECK_BY_PID_NOT_ALERT` | `checkPidNotAlert` | Long-running daemons (PID monitored) |
 
 A module can register multiple workers — the shipping `ExampleFormConf::getModuleWorkers()` returns both a Beanstalk worker and an AMI worker.
@@ -549,7 +564,7 @@ Modules are built by combining recipes. The base recipe is always present; every
 ModuleBlackList is **base + ui + dialplan + agi + system**:
 
 * **base** — `module.json`, `BlackListConf`, `BlackListNumbers` model (`m_BlackListNumbers`), `Messages/ru.php`, Setup class.
-* **ui** — a settings page to manage blacklisted numbers, menu item via `onBeforeHeaderMenuShow()`, assets via the controller, `module-black-list.js`.
+* **ui** — a settings page to manage blacklisted numbers, menu item via `onBeforeHeaderMenuShow()`, assets via the controller, `module-black-list-index.js`.
 * **dialplan** — `generateIncomingRoutBeforeDial()` injects an AGI call on inbound calls.
 * **agi** — `agi-bin/module-black-list.php` checks the caller against `BlackListNumbers` using `new AGI()` and snake_case methods.
 * **system** — `createCronTasks()` runs nightly cleanup.

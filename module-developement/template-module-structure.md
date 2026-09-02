@@ -13,7 +13,7 @@ supported ways to bootstrap a new module, and both produce the same layout.
 Throughout this documentation we use a single running example — a fictional module
 called **ModuleBlackList** (config class `BlackListConf`, main class `BlackListMain`,
 model `BlackListNumbers` backed by table `m_BlackListNumbers`, front-end asset
-`module-black-list.js`). Wherever a pattern is shown, you will also find a pointer to
+`module-black-list-index.js`). Wherever a pattern is shown, you will also find a pointer to
 a **real** example module you can read in the repository.
 
 ## Two ways to bootstrap a module
@@ -40,8 +40,9 @@ table names) to match your feature. The identity rules are described under
 
 ### Path 2 — Generate with the `/mikopbx-module` skill
 
-If you work with an AI coding agent (Claude Code), the bundled `/mikopbx-module`
-skill generates a fully wired module from a natural-language description. It produces
+If you work with an AI coding agent (Claude Code, Codex, Cursor, Gemini CLI, …), the
+`/mikopbx-module` skill from [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills)
+generates a fully wired module from a natural-language description. It produces
 the same layout as the template, picks the integration "recipes" you actually need
 (UI, REST API, dialplan hooks, workers, AGI, firewall, …), and follows the naming
 conventions automatically.
@@ -85,7 +86,7 @@ ModuleTemplate/
 │   └── ModuleTemplate.php
 ├── Setup/                   # Installer
 │   └── PbxExtensionSetup.php
-├── Messages/                # Translations: en.php, ru.php, … (29 languages)
+├── Messages/                # Translations: 28 locale files + languages.php registry
 ├── public/assets/           # Front-end assets
 │   ├── js/src/              # ES6+ sources (transpiled with Babel)
 │   ├── js/                  # Compiled JS served to the browser
@@ -143,14 +144,20 @@ What `moduleUniqueID` controls:
 | PHP namespace | `Modules\{ID}\…` | `Modules\ModuleBlackList\Lib` |
 | On-disk module directory | `{modulesDir}/{ID}` | `…/Modules/ModuleBlackList` |
 | Database table prefix | `m_{Entity}` (per model) | `m_BlackListNumbers` |
-| Admin-cabinet route | `{ID}/{controller}/{action}` | `ModuleBlackList/index/index` |
-| URL slug (assets, REST) | `module-{kebab-case}` | `module-black-list` |
+| URL slug (routes, assets, REST) | `module-{kebab-case}` | `module-black-list` |
+| Admin-cabinet route | `/{slug}/{controller}/{action}` | `/module-black-list/module-black-list/index` |
 
 The database table name is set per-model with `setSource()`. In the template's model
 `Models/ModuleTemplate.php` it is `$this->setSource('m_ModuleTemplate')`; for our
-example it would be `m_BlackListNumbers`. The admin route is assembled by the Core as
-`"$module->uniqid/$controllerName/$actionName"` — see
-`src/AdminCabinet/Controllers/BaseController.php`.
+example it would be `m_BlackListNumbers`.
+
+The admin route is registered by the Core as
+`/{uncamelized-uniqueID}/:controller/:action/:params` — see
+`PbxExtensionUtils::registerEnabledModulesInRouter()` in `src/Modules/PbxExtensionUtils.php`,
+which builds the slug with `Text::uncamelize($moduleUniqueId, '-')`. Do not confuse this with
+`$this->view->currentPage`, which `BaseController` assembles as
+`"$module->uniqid/$controllerName/$actionName"` (PascalCase) purely to highlight the active
+menu entry — it is not a URL.
 
 {% hint style="warning" %}
 Rename **consistently**. When you change `moduleUniqueID`, you must also update the

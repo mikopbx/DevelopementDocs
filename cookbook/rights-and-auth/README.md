@@ -122,15 +122,18 @@ Limited rights are not only about hiding pages — a role often must also see on
 ```php
 public function applyACLFiltersToCDRQuery(array &$parameters, array $sessionContext = []): void
 {
-    // $sessionContext['role'] holds the JWT role in REST-API context.
+    // $sessionContext['role'] holds the JWT role; return early when it is null.
     // Mutate $parameters['conditions'] / $parameters['bind'] to scope the rows.
 }
 ```
 
-`$sessionContext` carries the role from the JWT token when the query originates
-from the REST API (`$sessionContext['role']`, `$sessionContext['user_name']`,
-`$sessionContext['session_id']`); in the AdminCabinet context it is empty and you
-read the session yourself. `ModuleUsersUI` recovers the access-group id by
+`$sessionContext` carries the role from the JWT token
+(`$sessionContext['role']`, `$sessionContext['user_name']`,
+`$sessionContext['session_id']`). Every CDR list query — including the one behind
+the AdminCabinet *Call Detail Records* page — goes through the REST API, so the
+role is always available there; ignore the "AdminCabinet context is empty, read
+`SessionProvider`" wording still present in the interface docblock.
+`ModuleUsersUI` recovers the access-group id by
 stripping `Constants::MODULE_ROLE_PREFIX` from the role, then narrows the query
 in `Extensions/ModuleUsersUI/Lib/UsersUICDRFilter.php`.
 

@@ -6,25 +6,25 @@ description: >-
 
 # Using the skill
 
-The `/mikopbx-module` skill turns a natural-language description into a complete, convention-correct MikoPBX module. It runs in one of three modes — create a new module, augment an existing one, or optimize one against the reference standards — and it works best when you feed it the *problem* rather than a file list. This page shows how to prompt it, what questions it will ask, and how the words you use map to the code it generates.
+The `/mikopbx-module` skill turns a natural-language description into a complete, convention-correct MikoPBX module. It runs in one of four modes — create a new module, augment an existing one, optimize one against the reference standards, or simply answer an architecture question without writing files — and it works best when you feed it the *problem* rather than a file list. This page shows how to prompt it, what questions it will ask, and how the words you use map to the code it generates.
 
 For the bigger picture see [What the skill is](README.md); for the file inventory each recipe produces see [What it generates](what-it-generates.md).
 
 {% hint style="info" %}
-The skill is defined in `Core/.claude/skills/mikopbx-module/SKILL.md` and its recipe specifications live in `Core/.claude/skills/mikopbx-module/reference/recipes.md`. Everything on this page traces back to those two files.
+The skill is defined in `skills/mikopbx-module/SKILL.md` of the [mikopbx/agent-skills](https://github.com/mikopbx/agent-skills) repository and its recipe specifications live in `skills/mikopbx-module/reference/recipes.md` next to it. Everything on this page traces back to those two files. Install the skill first — see [Installing the skills](README.md#installing-the-skills).
 {% endhint %}
 
 ## How the skill activates
 
 The skill recognizes both an explicit invocation and a set of natural-language triggers. From `SKILL.md` ("Task Activation Patterns"):
 
-- `/mikopbx-module ...` — explicit invocation
-- "Create module ..." / "Создай модуль ..."
-- "Generate module ..." / "Сгенерируй модуль ..."
-- "Add to module ..." / "Добавь в модуль ..."
-- "Optimize module ..." / "Оптимизируй модуль ..."
-- "How to make module ..." / "Как сделать модуль ..."
-- "Improve module ..." / "Доработай модуль ..."
+- `/mikopbx-module ...` — explicit invocation (Claude Code; other agents match on the `SKILL.md` description, so the phrases below are enough)
+- "Create a module ..." / "Создай модуль ..."
+- "Generate a module ..." / "Сгенерируй модуль ..."
+- "Add to the module ..." / "Добавь в модуль ..."
+- "Optimize the module ..." / "Оптимизируй модуль ..."
+- "How do I make a module ..." / "Как сделать модуль ..."
+- "Improve the module ..." / "Доработай модуль ..."
 
 The verb you choose selects the mode: *create/generate* → Mode 1, *add/improve* → Mode 2, *optimize* → Mode 3.
 
@@ -44,7 +44,7 @@ This tells the skill: it needs a settings model, a web page (`ui`), a REST endpo
 {% tab title="Weak" %}
 > Make me a `BlackListConf.php` and a `BlackListNumbers.php` and a controller.
 
-Naming files by hand bypasses the recipe selection. You lose the auto-discovery, the matching providers, the JS/CSS pair, and the post-generation checks — and you will likely miss a file the recipe would have created for you.
+Naming files by hand bypasses the recipe selection. You lose the auto-discovery, the matching JS/CSS pair, the README and workflow files, and the post-generation checks — and you will likely miss a file the recipe would have created for you.
 {% endtab %}
 {% endtabs %}
 
@@ -64,7 +64,7 @@ The skill selects recipes from keywords in your description. Use the words on th
 | `acl` | ACL, permissions, roles, access / доступ, права, роли |
 | `system` | cron, nginx, scheduled, periodic / периодический, запуск |
 
-`base` is always included — it generates `module.json`, `Setup/PbxExtensionSetup.php`, at least one model under `Models/`, the `Lib/{Feature}Conf.php` config class, and `Messages/ru.php`.
+`base` is always included — it generates `module.json`, the `README.md` / `README.ru.md` pair, `.github/workflows/build.yml`, `Setup/PbxExtensionSetup.php`, at least one model under `Models/`, the `Lib/{Feature}Conf.php` config class, and `Messages/ru.php`.
 
 {% hint style="success" %}
 **Running example.** "A module that **blocks** inbound **calls** from numbers on a managed **list**, with a **settings page** and a **REST** sync **endpoint**" selects `base + ui + rest-api + dialplan + agi`. That is exactly the recipe set the skill reports for **ModuleBlackList** in the sample run inside `SKILL.md` (Phase 4 report).
@@ -84,8 +84,8 @@ Do not hand-name every class. Give the skill a feature concept — "BlackList" �
 | DB table | `m_{Entity}` | `m_BlackListNumbers` |
 | Controller | `Module{Feature}Controller` | `ModuleBlackListController` |
 | Worker | `Worker{Feature}{Type}` | `WorkerBlackListAMI` |
-| JS file | `module-{kebab-case}` | `module-black-list.js` |
-| CSS file | `module-{kebab-case}` | `module-black-list.css` |
+| JS file | `module-{kebab-case}-{action}` | `module-black-list-index.js` |
+| CSS file | `module-{kebab-case}-{action}` | `module-black-list-index.css` |
 | Translation prefix | `module_{feature}_` | `module_black_list_` |
 
 If you supply only "BlackList", the skill proposes `ModuleBlackList` and every dependent name follows. Override a single name only if you have a strong reason — the convention is what keeps the module consistent with the Core and with other modules.
@@ -104,11 +104,11 @@ Mode 1 ("Create New Module") runs four phases. Phase 1 is the dialog you steer; 
 
 1. **Purpose** — what problem the module solves. Inferred from your description; the skill confirms it back to you.
 2. **Name** — the skill suggests `Module{Feature}` (e.g. `ModuleBlackList`) following the conventions above.
-3. **Location** — you choose where the module lives:
-   - `Extensions/` — production modules.
-   - `Extensions/EXAMPLES/{Category}/` — example / learning modules (categories such as `WebInterface`, `REST-API`, `AMI`).
+3. **Target kind** — you choose what you are building:
+   - **production module** — a module with its own repository, README pair and publish workflow.
+   - **example / learning module** — a minimal module that demonstrates one pattern; no README pair and no per-module workflow (the repository that hosts it builds it with a shared workflow).
 4. **Recipes** — the skill proposes the recipe set using the trigger table, and asks clarifying questions like "Should the module react to call events?" or "Is there data to store in the database?"
-5. **Plan confirmation** — the skill prints the location, recipes, and file list and waits for your "go".
+5. **Plan confirmation** — the skill prints the kind, location, recipes, and file list and waits for your "go".
 
 ```
 You: Create a module that blocks inbound calls from a list of numbers,
@@ -120,7 +120,8 @@ You:   Yes.
 Skill: Suggested name: ModuleBlackList. OK?
 You:   Yes.
 
-Skill: Location — production (Extensions/) or example (Extensions/EXAMPLES/{Category}/)?
+Skill: Production module (own repository, README pair, publish workflow)
+       or example module?
 You:   Production.
 
 Skill: Recipes I propose: base, ui, rest-api, dialplan, agi.
@@ -131,7 +132,8 @@ Skill: Recipes I propose: base, ui, rest-api, dialplan, agi.
 You:   Hang up with a busy tone.
 
 Skill: Plan —
-       Location: Extensions/ModuleBlackList/
+       Kind:     production
+       Location: ModuleBlackList/
        Recipes:  base, ui, rest-api, dialplan, agi
        Files:    Setup/PbxExtensionSetup.php, Lib/BlackListConf.php,
                  Lib/BlackListMain.php, Models/BlackListNumbers.php,
@@ -141,10 +143,10 @@ Skill: Plan —
 You:   Go.
 ```
 
-After you approve, Phase 2 generates files in a fixed order (metadata → setup → models → config → main → web → REST → workers → AGI → translations), Phase 3 runs the post-generation checks (`php -l` on every PHP file, Babel transpilation for JS, `module.json` JSON validation), and Phase 4 prints a report listing the files created and the check results.
+After you approve, Phase 2 generates files in a fixed order (metadata → setup → models → config → main → web → REST → workers → AGI → translations), Phase 3 runs the post-generation checks (`php -l` on every PHP file, Babel transpilation for JS, `module.json` JSON validation, the standalone-catalog grep on `Messages/`, the README-pair and workflow tests for production modules, and the REST/OpenAPI translation validator when `rest-api` is present), and Phase 4 prints a report listing the files created and the check results.
 
 {% hint style="info" %}
-The skill reads canonical example source before generating each recipe. For the `ui` and `base` recipes it studies the working example in `Extensions/EXAMPLES/WebInterface/ModuleExampleForm/`; for `rest-api` it reads `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/`; for AMI workers `Extensions/EXAMPLES/AMI/ModuleExampleAmi/`. Pointing it at these directories yourself never hurts.
+The skill reads the actual source of a published reference module before generating each recipe: a module with an admin page for `ui` and `base`, the REST API v3 reference module for `rest-api`, a module with an AMI worker for `workers`. Reference modules, including [ModuleTemplate](https://github.com/mikopbx/ModuleTemplate), are published at [github.com/mikopbx](https://github.com/mikopbx). Pointing the skill at a checkout of the module you want it to imitate never hurts — for example the reference modules under `Extensions/EXAMPLES/` referenced throughout this guide.
 {% endhint %}
 
 ## Mode 2: augment an existing module
@@ -167,20 +169,38 @@ The skill will add a `getModuleWorkers()` method returning the worker registrati
 Trigger Mode 3 with "Optimize ModuleBlackList". The skill:
 
 1. **Reads all module files.**
-2. **Checks anti-patterns** against the reference standards (`Core/.claude/skills/mikopbx-module/reference/anti-patterns.md`).
+2. **Checks anti-patterns** against the reference standards (`skills/mikopbx-module/reference/anti-patterns.md` in the agent-skills repository).
 3. **Reports findings with severity** and a fix suggestion for each.
 4. **Applies fixes** only if you approve.
 
 This is where the modern-baseline rules are enforced: PHP 8.4 idioms (typed properties on non-model classes, constructor promotion, `match`, enums), the Phalcon ORM exception for model column properties (untyped `$id`, nullable string defaults like `public ?string $enabled = '0';`), the import rule (`use Phalcon\Di\Di;`, never `use Phalcon\Di;`), and the file-header rule (`declare(strict_types=1);`, no closing `?>`). Read each finding's severity before approving a bulk fix — apply the high-severity ones first.
 
+The reference catalogue has two halves, and the second is easy to overlook. Alongside 24 numbered code anti-patterns (`MikoPBXVersion.php` in a new module, `shell_exec` instead of the PBX helpers, monolithic classes, phantom model fields, `die()` in a worker, memory leaks in long-running workers, file-based IPC instead of Redis, `@` suppression, direct SQL instead of the ORM, and the idiom rules above) it carries **14 security anti-patterns**, `S1`–`S14`, five of them CRITICAL:
+
+| ID | Severity | Issue |
+| --- | --- | --- |
+| `S1` | CRITICAL | Unauthenticated endpoints exposing sensitive data or actions |
+| `S2` | CRITICAL | SQL injection via string interpolation in `find()` / `findFirst()` |
+| `S3` | CRITICAL | Command injection via unescaped shell arguments |
+| `S4` | CRITICAL | Path traversal / arbitrary file read |
+| `S5` | CRITICAL | Reflected XSS |
+| `S6`–`S10` | HIGH | Dynamic dispatch from user input, insecure deserialization, cron injection, disabled TLS verification, credentials leaked in API responses |
+| `S11`–`S14` | MEDIUM / LOW | SSRF via admin-configurable URLs, information disclosure via error output, `postMessage("*")`, predictable temp paths |
+
+Running Mode 3 on a module you inherited is therefore a cheap first security pass, not only a style pass. Sort the findings by severity and fix `S1`–`S5` before anything cosmetic.
+
 {% hint style="warning" %}
 Mode 3 changes existing, possibly production code. Always review the proposed diff before approving. The skill will not apply fixes without your explicit go-ahead, but it is your job to confirm the change is safe for the module's release.
 {% endhint %}
 
+## Mode 4: consultation
+
+The skill also answers architecture and how-to questions without writing a single file — "Как сделать ... в модуле?" / "How to ... in a module?". It answers from the same reference set it generates from (`reference/hook-reference.md` for the Core hook catalogue, `reference/recipes.md`, `reference/anti-patterns.md`, `reference/module-structure.md` and `reference/naming-conventions.md`). Use this before Mode 1 when you are not yet sure which recipes your feature needs; nothing is created until you ask for it explicitly.
+
 ## Anti-prompts: what slows the skill down
 
-- **Listing files instead of behavior** — you bypass recipe selection and lose generated providers/checks.
-- **Skipping the location answer** — the skill must know `Extensions/` vs `Extensions/EXAMPLES/{Category}/` before it can lay down paths.
+- **Listing files instead of behavior** — you bypass recipe selection and lose the generated asset pair, release plumbing and post-generation checks.
+- **Skipping the kind answer** — the skill must know production vs example before it decides whether to lay down the README pair and the publish workflow.
 - **Approving the plan without reading it** — the plan is the last cheap checkpoint before files hit disk.
 - **Renaming individual generated classes ad hoc** — breaks the naming-convention chain that ties the module together.
 
