@@ -404,7 +404,7 @@ class BlackListConf extends ConfigClass
 {% endcode %}
 
 {% hint style="info" %}
-The full hook catalog — every method on all four interfaces, their signatures, and when the Core calls them — is documented in [The module configuration class](module-class.md). The compact constant list also lives in `Core/src/Modules/CLAUDE.md`.
+The full hook catalog — every method on all four interfaces, their signatures, and when the Core calls them — is documented in [The module configuration class](module-class.md). The constants themselves are declared in `Core/src/Modules/Config/*Interface.php`; `Core/src/Modules/AGENTS.md` explains how the Core dispatches them.
 {% endhint %}
 
 ### `Lib/{Feature}Main.php` — shared logic

@@ -108,7 +108,7 @@ Extensions/ModuleBlackList/
 │   └── check-blacklist.php
 └── Messages/
     ├── ru.php
-    └── … (28 more languages)
+    └── … (25 more languages)
 ```
 
 The skill reads the published reference modules ([github.com/mikopbx](https://github.com/mikopbx),
@@ -210,12 +210,22 @@ find Extensions/ModuleBlackList -name "*.php" -exec php -l {} \;
 ### 2. JavaScript transpilation via the `/babel-compiler` skill
 
 If the `ui` recipe produced JavaScript, the skill transpiles the ES6+ source to ES5 with the
-Dockerized Babel compiler (`ghcr.io/mikopbx/babel-compiler:latest`). Each source file under
-`public/assets/js/src/` is compiled one-for-one into `public/assets/js/`, keeping its name:
+Babel compiler from [MikoPBXUtils](https://github.com/mikopbx/MikoPBXUtils). The compiler is a
+Docker image you build once from a checkout of that repository — it is not published to a
+registry:
+
+```bash
+git clone https://github.com/mikopbx/MikoPBXUtils && cd MikoPBXUtils
+docker build -t mikopbx-babel-compiler .
+```
+
+Each source file under `public/assets/js/src/` is compiled one-for-one into
+`public/assets/js/`, keeping its name. Run the container from the parent directory of your
+`Core` checkout (the directory that also contains `Extensions/`):
 
 ```bash
 docker run --rm -v "$(pwd)":/workspace \
-  ghcr.io/mikopbx/babel-compiler:latest \
+  mikopbx-babel-compiler \
   /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list-index.js \
   extension
 ```
@@ -223,9 +233,9 @@ docker run --rm -v "$(pwd)":/workspace \
 produces `public/assets/js/module-black-list-index.js`.
 
 {% hint style="info" %}
-The target argument is `extension` for module files and `core` for admin-cabinet files. Mount
-your own checkout at `/workspace`. The Babel preset is fixed inside the image — do not
-override it. Output always lands in `public/assets/js/`; there is no `cache/` build directory
+The entrypoint detects the target (`core` for admin-cabinet files, `extension` for module
+files) from the path itself; the trailing argument is accepted for clarity but does not change
+where the output goes. The Babel preset is fixed inside the image — do not override it. Output always lands in `public/assets/js/`; there is no `cache/` build directory
 in your checkout (`js/cache/<ModuleID>/…` paths you see in provider classes are the *runtime
 URL* the admin cabinet serves module assets from, not a build target).
 {% endhint %}
@@ -296,7 +306,7 @@ Files created:
   Lib/BlackListConf.php
   …
   agi-bin/check-blacklist.php
-  Messages/ru.php (+ 28 languages via /translations)
+  Messages/ru.php (+ 25 languages via /translations)
   module.json
 
 Checks:
@@ -376,16 +386,16 @@ points at two more real lookups worth reading:
 `Extensions/ModulePhoneBook/agi-bin/agi_phone_book.php` and
 `Extensions/ModuleTelegramProvider/agi-bin/saveSipHeadersInRedis.php`.
 
-## Translations: the 29-language chain
+## Translations: the 26-language chain
 
 The `Messages/` step does not call an AI translator inline — it delegates to the
-`/translations` skill, which enforces a strict Russian-first workflow across all 29 supported
+`/translations` skill, which enforces a strict Russian-first workflow across all 26 supported
 languages.
 
 1. **Russian is the source of truth.** The skill writes `Messages/ru.php` first, with every
    key the generated controllers, forms and views reference, using the module prefix
    (`module_black_list_` for ModuleBlackList) and the `%placeholder%` format.
-2. **The other 28 languages are derived from Russian** — never edited by hand. `/translations`
+2. **The other 25 languages are derived from Russian** — never edited by hand. `/translations`
    processes them **one language and one file at a time**, translating only missing keys and
    preserving any existing ones.
 3. **Key-count validation gates every step.** After each language is merged, its key count
@@ -407,7 +417,7 @@ are easy to lose:
 
 For **ModuleBlackList** those are `AdditionalMenuItemModuleBlackList`,
 `BreadcrumbModuleBlackList` and `SubHeaderModuleBlackList`. They must be present and
-translated in **all 29 locales** — when one is missing, the module-management page renders the
+translated in **all 26 locales** — when one is missing, the module-management page renders the
 raw key name instead of a label.
 
 ### The standalone-array rule
@@ -460,8 +470,9 @@ install the module.
 2. **Re-transpile the JavaScript** and confirm the ES5 output exists and is non-trivial:
 
    ```bash
+   # image built from MikoPBXUtils as in check 2 above; run from the parent of Core/
    docker run --rm -v "$(pwd)":/workspace \
-     ghcr.io/mikopbx/babel-compiler:latest \
+     mikopbx-babel-compiler \
      /workspace/Extensions/ModuleBlackList/public/assets/js/src/module-black-list-index.js \
      extension
    ```
@@ -500,4 +511,4 @@ generated module as done — and re-check any generated AGI script against the c
 * [Module recipes](../module-developement/recipes.md) — the full specification of each recipe
   and the files it contributes to the tree.
 * [Module translations](../module-developement/translations.md) — the Russian-first,
-  29-language translation rules the `Messages/` step relies on.
+  26-language translation rules the `Messages/` step relies on.

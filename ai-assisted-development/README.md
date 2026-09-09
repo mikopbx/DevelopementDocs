@@ -87,6 +87,10 @@ npx skills add mikopbx/agent-skills --all
 # project-local install for Claude Code and Codex only
 npx skills add mikopbx/agent-skills -a claude-code -a codex
 
+# only the skills /mikopbx-module needs, for the same two agents
+npx skills add mikopbx/agent-skills -a claude-code -a codex \
+  -s mikopbx-module -s translations -s babel-compiler
+
 # user-wide instead of the current project
 npx skills add mikopbx/agent-skills -g
 ```
@@ -99,14 +103,20 @@ on. Each skill is self-contained.
 {% endtab %}
 {% endtabs %}
 
+The CLI keeps one copy of each skill in `.agents/skills/` (the directory Codex reads) and
+symlinks it into every other selected agent's directory (`.claude/skills/` for Claude Code, and
+so on); pass `--copy` for independent copies. `npx skills update` pulls the latest revision later, and `npx skills list`
+shows what is installed.
+
 Run the install from the directory where you develop modules. Most skills assume a checkout
 of [mikopbx/Core](https://github.com/mikopbx/Core) next to your module and a running MikoPBX
 (the development Docker container or a real PBX reachable over SSH); each `SKILL.md` states
 what it needs.
 
 {% hint style="info" %}
-**The Core repository is agent-ready too.** Every directory of `mikopbx/Core` carries an
-`AGENTS.md` with the conventions and pitfalls an agent cannot infer from the code alone
+**The Core repository is agent-ready too.** The root of `mikopbx/Core` and each major source
+area (`src/Modules`, `src/PBXCoreREST`, `src/Common/Models`, `src/AdminCabinet`, the workers,
+the tests) carry an `AGENTS.md` with the conventions and pitfalls an agent cannot infer from the code alone
 (imports, bootstrap, where Babel output goes, how to run the tests). `CLAUDE.md` files next to
 them simply include the `AGENTS.md`, so Claude Code and every agent that reads `AGENTS.md`
 see the same guidance. Keep a Core checkout available to the agent while you work: the skill

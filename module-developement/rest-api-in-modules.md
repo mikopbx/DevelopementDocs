@@ -372,8 +372,9 @@ exactly (which also routes `download`, `uploadFile`, and `getDefault`).
 Actions are static (`Action::main($data)`) and are **not** `Injectable` across
 the worker-queue boundary. If an action needs the authenticated session or
 forwarded HTTP headers, the Processor must forward them explicitly from
-`$request['sessionContext']` / `$request['httpHeaders']`. See the *Forwarded HTTP
-Headers* and *Session Context* sections of `Core/src/PBXCoreREST/CLAUDE.md`.
+`$request['sessionContext']` / `$request['httpHeaders']`. See the *Non-obvious
+behaviour* notes in `Core/src/PBXCoreREST/AGENTS.md` and the filter in
+`Core/src/PBXCoreREST/Http/ForwardedHeaderFilter.php`.
 {% endhint %}
 
 ## DataStructure: the single source of truth
@@ -476,7 +477,7 @@ module's `Messages/` files (see [translations.md](translations.md)).
 
 The Action class holds the business logic. MikoPBX standardises a **7-phase**
 order for create/update/patch in `SaveRecordAction`, documented in
-`Core/src/PBXCoreREST/CLAUDE.md` and supported by the helper base
+`Core/src/PBXCoreREST/AGENTS.md` and supported by the helper base
 `Core/src/PBXCoreREST/Lib/Common/AbstractSaveRecordAction.php`
 (`sanitizeInputData()`, `validateRequiredFields()`, `applyDefaults()`,
 `validateRecordExistence()`, `executeInTransaction()`):

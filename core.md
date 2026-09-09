@@ -68,7 +68,7 @@ discoverable through the DI — see
 ## The six namespaces of `MikoPBX\`
 
 All PHP source lives under `Core/src/` and maps one-to-one to a top-level
-namespace. Each major area carries its own `CLAUDE.md` describing local
+namespace. Each major area carries its own `AGENTS.md` describing local
 conventions — those are the authoritative, in-tree references for that
 subsystem.
 
@@ -93,7 +93,7 @@ depends on:
 * **`Providers/`** — the DI service providers. There are **34** provider
   classes (`Core/src/Common/Providers/*.php`) registering services such as `db`,
   `managedCache`, `redis`, `logger`, `pbxConfModules`, `eventBus`, `license`,
-  and more. See `Core/src/Common/Providers/CLAUDE.md`.
+  and more. See `Core/src/Common/Providers/AGENTS.md`.
 * **`Library/`** — reusable helpers and value objects.
 * **`Messages/`** — translation arrays. There are **26** language directories
   under `Core/src/Common/Messages/` (for example `en`, `ru`, `de`, `zh_Hans`,
@@ -126,7 +126,7 @@ attribute-based routing, async Redis-queue processing, and OpenAPI
 auto-generation. Resource controllers extend shared base controllers. This is
 also the transport that Core uses internally (for example the event bus posts
 through it). Full details are in [the API chapter](api/README.md) and in
-`Core/src/PBXCoreREST/CLAUDE.md`.
+`Core/src/PBXCoreREST/AGENTS.md`.
 
 ### AdminCabinet — the web administration MVC
 
@@ -286,8 +286,9 @@ so you rarely delete child rows by hand.
 
 ### Functional clusters
 
-The remaining ~40 models group into recognisable clusters (see
-`Core/src/Common/Models/CLAUDE.md` for the full inventory and field lists):
+The remaining ~40 models group into recognisable clusters (the classes
+themselves are the inventory — `Core/src/Common/Models/*.php`; the conventions
+they share are in `Core/src/Common/Models/AGENTS.md`):
 
 * **Telephony** — `Users`, `Sip`, `Iax`, `Providers`, `SipHosts`, `CallQueues`,
   `CallQueueMembers`, `ConferenceRooms`, `IvrMenu`, `IvrMenuActions`,

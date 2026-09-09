@@ -253,7 +253,7 @@ feature prefix is `module_black_list_`. REST-API modules add their own families
 (`rest_`, `rest_tag_`, `rest_param_`, `rest_schema_`, …) — see the full set in
 `Extensions/EXAMPLES/REST-API/ModuleExampleRestAPIv3/Messages/en.php`.
 
-## The `/translations` workflow (29 languages)
+## The `/translations` workflow (26 languages)
 
 MikoPBX ships interface translations for a broad set of languages. The
 authoritative **active** set is the constant
@@ -267,10 +267,9 @@ cs  tr  ja  vi  az  ro  th  hu  fi  hr  zh_Hans
 
 The starter `ModuleTemplate/Messages/` directory ships **28** locale files
 (the 26 above plus `he` and `fa`, which are harmless extras kept for historical
-reasons) alongside the `languages.php` scaffold. When the translation skill talks
-about "29 languages," that figure counts the full shipped file set, not the active
-languages the UI offers — for what is actually rendered, trust
-`AVAILABLE_LANGUAGES`. New locales are added to a module by adding the matching
+reasons) alongside the `languages.php` scaffold. The `translations` skill works on
+the same 26 active codes and ignores the two extras — for what is actually
+rendered, trust `AVAILABLE_LANGUAGES`. New locales are added to a module by adding the matching
 `Messages/<code>.php` file for any code present in that constant.
 
 The end-to-end process is owned by the `/translations` skill

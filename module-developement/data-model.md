@@ -232,6 +232,11 @@ sqlite3 /storage/usbdisk1/mikopbx/custom_modules/ModuleBlackList/db/module.db .t
 * The table name passed to `setSource()` must be unique within the module.
 * The model class name must be unique within the module.
 * Prefix module tables with `m_` so they never collide with core tables.
+* Beware of column names that begin with a PHQL keyword. A confirmed case: the
+  PHQL lexer splits `note_text` into `NOT` + `e_text`, and the query fails with
+  "Column 'e_text' doesn't belong to any of the selected models". Other
+  keyword-prefixed names may behave the same, so when in doubt bracket-escape
+  the column in every `conditions` string: `'[note_text] = :text:'`.
 
 ## Relationships
 
