@@ -373,13 +373,12 @@ mechanisms, never through a declared graph:
 
 ### What about max_pbx_version?
 
-`max_pbx_version` exists **only as marketplace/release-server metadata**. You can see it in
-`Core/src/PBXCoreREST/Lib/Modules/DataStructure.php`: it appears in the API data structure
-built from **repository** data (`createFromRepositoryData()`, the available-modules listing)
-and in the read-only OpenAPI `detail` schema. It is a `readOnly` response field populated by
-the release server — **not** something an author writes into `module.json`, and **not**
-something `checkCompatibility()` consults. The compatibility gate enforced on-device is
-purely the lower bound (`min_pbx_version`).
+`max_pbx_version` does not exist anywhere: not in `module.json`, not in the Core and not on
+the release server. Older Core versions described an unused read-only `max_pbx_version` field
+in the REST modules schema (`Core/src/PBXCoreREST/Lib/Modules/DataStructure.php`); nothing
+ever filled or checked it, and it was removed
+([mikopbx/Core#1139](https://github.com/mikopbx/Core/issues/1139)). The only compatibility
+gate is the lower bound (`min_pbx_version`) checked by `checkCompatibility()`.
 
 {% hint style="info" %}
 Practical takeaway: declare a single honest `min_pbx_version`, and implement any cross-module
@@ -404,7 +403,7 @@ requirements in your config class hooks and model relations. Do not look for (or
 | `translation_sync`  | object  | no\*     | no            | translation tooling (\*language packs only)                   |
 | `release_settings`  | object  | no       | no            | release/build pipeline only                                   |
 | ~~`dependencies`~~  | —       | —        | —             | **does not exist**; relationships are procedural              |
-| ~~`max_pbx_version`~~ | —     | —        | —             | **not an author field**; marketplace metadata only            |
+| ~~`max_pbx_version`~~ | —     | —        | —             | **does not exist**; only `min_pbx_version` is checked         |
 
 ## Related pages
 
