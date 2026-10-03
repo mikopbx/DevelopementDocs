@@ -171,13 +171,13 @@ Modules are published through the MIKO **release pipeline**, configured by the `
 | `changelog_enabled`     | Whether a changelog is generated for the release.                      |
 | `create_github_release` | Whether a corresponding GitHub release is created.                     |
 
-Once published, the **MIKO release server** lists the module and serves compatibility metadata for each release, including `min_pbx_version` and `max_pbx_version`. When a PBX queries the marketplace, the server uses that metadata to **filter** which releases are offered to that specific PBX version: a release whose compatibility window does not include the PBX's version is simply not presented.
+Once published, the **MIKO release server** lists the module and **filters** its releases by version: a PBX is offered only the releases whose `min_pbx_version` is not higher than its own version.
 
 {% hint style="warning" %}
-**Version filtering is server-side.** The compatibility window (`min_pbx_version` / `max_pbx_version`) is enforced by the release server when it decides what to *offer*. The Core itself only checks the **lower** bound at install time: `PbxExtensionSetupBase::checkCompatibility()` compares the running PBX version against the module's `min_pbx_version` and refuses to install anything older than required. **The Core does not enforce `max_pbx_version` locally** — there is no `max_pbx_version` check in the install path. The upper bound exists purely as marketplace metadata for filtering offers.
+**There is no upper version bound.** A module declares only `min_pbx_version`, and the Core checks it at install time: `PbxExtensionSetupBase::checkCompatibility()` compares the running PBX version against the module's `min_pbx_version` and refuses to install the module on an older PBX. There is no `max_pbx_version` — neither in `module.json`, nor in the Core, nor on the release server, which filters by the same lower bound only. Modules built for a Core that is too old are handled on the PBX side: on a system upgrade `PbxExtensionUtils::disableOldModules()` disables every enabled module whose `min_pbx_version` is below the oldest module API the Core still supports.
 {% endhint %}
 
-For reference, here is the Core's only local version gate — note it is a one-sided `min_pbx_version` check:
+For reference, here is the Core's only version gate — a one-sided `min_pbx_version` check:
 
 {% code title="Core/src/Modules/Setup/PbxExtensionSetupBase.php" %}
 ```php
@@ -197,7 +197,7 @@ public function checkCompatibility(): bool
 ```
 {% endcode %}
 
-In practice this means: set `min_pbx_version` honestly (the Core will hold you to it on every install), and rely on the release server's `max_pbx_version` metadata to stop offering an old build to PBX versions it was never tested against.
+In practice this means: set `min_pbx_version` honestly (the Core will hold you to it on every install). There is no way to declare the newest PBX version a build supports; if a new PBX release breaks your module, publish a fixed release.
 
 ## Author checklist
 
